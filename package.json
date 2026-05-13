@@ -7,7 +7,8 @@
     "server": "cd backend && npm run dev",
     "client": "cd frontend && npm run dev",
     "seed-admin": "cd backend && node src/seed/seedAdmin.js",
-    "seed-all": "cd backend && node src/seed/seedAdmin.js && node src/seed/seedTables.js && node src/seed/seedMenu.js"
+    "seed-all": "cd backend && node src/seed/seedAdmin.js && node src/seed/seedTables.js && node src/seed/seedMenu.js",
+    "start": "cd backend && npm install && node src/server.js"
   },
   "devDependencies": {
     "autoprefixer": "^10.5.0",
