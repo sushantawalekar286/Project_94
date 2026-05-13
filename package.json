@@ -1,0 +1,22 @@
+{
+  "name": "digital-waiter-system",
+  "private": true,
+  "scripts": {
+    "install-all": "cd backend && npm install && cd ../frontend && npm install",
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "server": "cd backend && npm run dev",
+    "client": "cd frontend && npm run dev",
+    "seed-admin": "cd backend && node src/seed/seedAdmin.js",
+    "seed-all": "cd backend && node src/seed/seedAdmin.js && node src/seed/seedTables.js && node src/seed/seedMenu.js"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.5.0",
+    "concurrently": "^9.0.1",
+    "framer-motion": "^12.38.0",
+    "html5-qrcode": "^2.3.8",
+    "postcss": "^8.5.14",
+    "react-hot-toast": "^2.6.0",
+    "react-icons": "^5.6.0",
+    "tailwindcss": "^4.3.0"
+  }
+}

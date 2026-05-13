@@ -1,0 +1,4 @@
+[
+  { "name": "Cheese", "unit": "kg", "stock": 20 },
+  { "name": "Flour", "unit": "kg", "stock": 30 }
+]

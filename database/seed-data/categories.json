@@ -1,0 +1,6 @@
+[
+  { "name": "Pizza", "description": "Pizza items" },
+  { "name": "Burgers", "description": "Burger items" },
+  { "name": "Fries", "description": "Fries items" },
+  { "name": "Beverages", "description": "Drinks" }
+]

@@ -1,0 +1,4 @@
+[
+  { "name": "Margherita Pizza", "description": "Classic cheese pizza", "price": 8.99 },
+  { "name": "Veg Burger", "description": "Loaded veggie burger", "price": 5.99 }
+]
