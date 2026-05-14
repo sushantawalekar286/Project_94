@@ -77,7 +77,7 @@ export default function CartPage() {
                   <FaReceipt className="mx-auto text-5xl text-gold-400" />
                   <h2 className="mt-5 text-2xl font-black">Your cart is empty</h2>
                   <p className="mt-2 text-white/55">Add a few restaurant favorites before checkout.</p>
-                  <Button className="mx-auto mt-6" onClick={() => navigate("/customer/menu")}>Browse Menu</Button>
+                  <Button className="mx-auto mt-6" onClick={() => navigate(`/table/${tableSession.tableNumber}`)}>Browse Menu</Button>
                 </motion.div>
               )}
             </AnimatePresence>

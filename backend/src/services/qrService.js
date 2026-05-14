@@ -16,8 +16,9 @@ const generateQRCodeImage = require("../utils/generateQRCode");
 const buildQRValue = (table, clientUrl) => {
   const scannerId = `SCANNER-T${table.number}`;
   const qrId = `QR-${table._id}`;
-  // Strictly formatted URL matching ScanPage.jsx parser
-  return `${clientUrl}/scan?scannerId=${encodeURIComponent(scannerId)}&qrId=${encodeURIComponent(qrId)}&table=${table.number}&token=${encodeURIComponent(table.token)}`;
+  const baseUrl = clientUrl.replace(/\/$/, "");
+  // Canonical production URL for customer table entrypoint
+  return `${baseUrl}/table/${table.number}?scannerId=${encodeURIComponent(scannerId)}&qrId=${encodeURIComponent(qrId)}&token=${encodeURIComponent(table.token)}`;
 };
 
 const generateForTable = async (table, clientUrl) => {
@@ -32,6 +33,8 @@ const generateForTable = async (table, clientUrl) => {
     margin: 2,
     width: 400
   });
+
+  console.log("QR Generated:", qrValue);
 
   const scannerId = `SCANNER-T${table.number}`;
   const qrId = `QR-${table._id}`;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { FaShoppingBag, FaSearch } from "react-icons/fa";
@@ -34,15 +34,27 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState("Pizza");
   const [search, setSearch] = useState("");
+  const { tableId } = useParams();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { addItem, items: cartItems, tableSession, setTableSession } = useCart();
 
   useEffect(() => {
-    const tableNumber = Number(params.get("table") || tableSession.tableNumber || 1);
+    const routeTableNumber = Number(tableId || params.get("table") || tableSession.tableNumber || 1);
     const token = params.get("token") || tableSession.token || "";
-    setTableSession({ tableNumber, token });
-  }, [params]);
+    const qrId = params.get("qrId") || tableSession.qrId || "";
+    const scannerId = params.get("scannerId") || tableSession.scannerId || "";
+
+    if (!Number.isInteger(routeTableNumber) || routeTableNumber < 1) {
+      toast.error("Invalid table QR code");
+      navigate("/scan", { replace: true });
+      return;
+    }
+
+    console.log("Scanned Table:", routeTableNumber);
+
+    setTableSession({ tableNumber: routeTableNumber, token, qrId, scannerId });
+  }, [tableId, params, navigate, setTableSession, tableSession.tableNumber, tableSession.token, tableSession.qrId, tableSession.scannerId]);
 
   useEffect(() => {
     getMenu()
@@ -72,7 +84,7 @@ export default function MenuPage() {
               <h1 className="text-2xl font-black sm:text-4xl">Digital Menu</h1>
             </div>
             <button
-              onClick={() => navigate("/customer/cart")}
+              onClick={() => navigate(`/customer/cart?table=${tableSession.tableNumber}`)}
               className="relative grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-primary-500 to-gold-500 text-white shadow-glow"
             >
               <FaShoppingBag />

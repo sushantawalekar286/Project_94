@@ -5,7 +5,10 @@ const { generateForTable } = require("../services/qrService");
 require("dotenv").config({ path: "../../.env" });
 
 const seedTables = async () => {
-  const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+  const clientUrl = process.env.CLIENT_URL;
+  if (!clientUrl) {
+    throw new Error("CLIENT_URL is required to seed table QR codes.");
+  }
   for (let i = 1; i <= 10; i++) {
     const existing = await Table.findOne({ number: i });
     const token = existing?.token || crypto.randomBytes(8).toString("hex");

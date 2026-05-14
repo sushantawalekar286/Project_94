@@ -23,6 +23,7 @@ export default function AppRoutes() {
       <Route path="/" element={<Navigate to="/scan" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/scan" element={<CustomerLayout><ScanPage /></CustomerLayout>} />
+      <Route path="/table/:tableId" element={<CustomerLayout><MenuPage /></CustomerLayout>} />
       <Route path="/customer/menu" element={<CustomerLayout><MenuPage /></CustomerLayout>} />
       <Route path="/customer/cart" element={<CustomerLayout><CartPage /></CustomerLayout>} />
       <Route path="/customer/success" element={<CustomerLayout><OrderSuccessPage /></CustomerLayout>} />

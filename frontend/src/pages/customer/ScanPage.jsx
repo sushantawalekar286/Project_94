@@ -16,7 +16,9 @@ export default function ScanPage() {
   const scannerId = params.get("scannerId") || `SCANNER-T${tableNumber}`;
 
   useEffect(() => {
+    console.log("Scanned Table:", tableNumber);
     setTableSession({ tableNumber, token, qrId, scannerId });
+    navigate(`/table/${tableNumber}?token=${encodeURIComponent(token)}&qrId=${encodeURIComponent(qrId)}&scannerId=${encodeURIComponent(scannerId)}`, { replace: true });
   }, [tableNumber, token, qrId, scannerId]);
 
   return (
@@ -61,7 +63,7 @@ export default function ScanPage() {
           </div>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <Button onClick={() => navigate(`/customer/menu?table=${tableNumber}&token=${token}`)}>
+            <Button onClick={() => navigate(`/table/${tableNumber}?token=${encodeURIComponent(token)}&qrId=${encodeURIComponent(qrId)}&scannerId=${encodeURIComponent(scannerId)}`)}>
               View Menu
             </Button>
             <Button variant="secondary" onClick={() => navigate("/login")}>

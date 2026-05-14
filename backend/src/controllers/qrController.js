@@ -1,6 +1,7 @@
 const Table = require("../models/Table");
 const QRCodeModel = require("../models/QRCode");
 const { generateForAllTables, generateForTable } = require("../services/qrService");
+const env = require("../config/env");
 
 /**
  * PHASE 3 — Fixed qrController
@@ -32,7 +33,7 @@ const listQRCodes = async (req, res, next) => {
 
 const generateQRCodes = async (req, res, next) => {
   try {
-    const clientUrl = process.env.CLIENT_URL;
+    const clientUrl = env.CLIENT_URL;
     if (!clientUrl) {
       return res.status(500).json({
         success: false,
@@ -55,7 +56,9 @@ const generateQRForTable = async (req, res, next) => {
     const table = await Table.findById(req.params.tableId);
     if (!table) return res.status(404).json({ success: false, message: "Table not found" });
 
-    const clientUrl = process.env.CLIENT_URL;
+    console.log("Table Found:", table._id.toString(), table.number);
+
+    const clientUrl = env.CLIENT_URL;
     if (!clientUrl) {
       return res.status(500).json({ success: false, message: "CLIENT_URL is not configured." });
     }
