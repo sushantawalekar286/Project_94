@@ -5,8 +5,10 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const mongoSanitize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
+const env = require('./config/env');
 
 const authRoutes = require("./routes/authRoutes");
+const authRefreshRoutes = require("./routes/authRefreshRoutes");
 const menuRoutes = require("./routes/menuRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const orderRoutes = require("./routes/orderRoutes");
@@ -27,7 +29,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https://images.unsplash.com", "https://res.cloudinary.com"],
-      connectSrc: ["'self'", process.env.CLIENT_URL || "http://localhost:5173"],
+          connectSrc: ["'self'", env.CLIENT_URL || "http://localhost:5173"],
     }
   }
 }));
@@ -40,7 +42,7 @@ app.use(xss());
 
 // 3. CORS configuration
 app.use(cors({ 
-  origin: process.env.CLIENT_URL || "http://localhost:5173", 
+  origin: env.CLIENT_URL || "http://localhost:5173", 
   credentials: true 
 }));
 
@@ -68,6 +70,7 @@ app.get("/health", (req, res) => {
 
 // API Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/auth", authRefreshRoutes);
 app.use("/api/menu", menuRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/orders", orderRoutes);

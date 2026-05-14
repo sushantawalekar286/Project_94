@@ -1,16 +1,13 @@
-const path = require("path");
-require("dotenv").config();
 const http = require("http");
 const app = require("./app");
 const connectDB = require("./config/db");
 const { initializeSocket } = require("./config/socket");
 const logger = require("./utils/logger");
+const env = require("./config/env");
 
-if (!process.env.MONGODB_URI || !process.env.JWT_SECRET) {
-  require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
-}
+const PORT = env.PORT || 5000;
 
-const PORT = process.env.PORT || 5000;
+// Fail-fast if env is invalid: env module already validates and throws
 
 const start = async () => {
   try {

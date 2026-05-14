@@ -31,13 +31,20 @@ const registerUser = async ({ name, email, password, role }, jwtSecret, adminId 
   };
 };
 
+const crypto = require('crypto');
 const loginUser = async ({ email, password }, jwtSecret) => {
-  const user = await User.findOne({ email }).select("+password");
+  const user = await User.findOne({ email }).select("+password +refreshTokenHash");
   if (!user) throw Object.assign(new Error("Invalid credentials"), { statusCode: 401 });
-  
+
   const ok = await bcrypt.compare(password, user.password);
   if (!ok) throw Object.assign(new Error("Invalid credentials"), { statusCode: 401 });
-  
+
+  // Create refresh token and persist its hash
+  const refreshToken = crypto.randomBytes(64).toString('hex');
+  const refreshHash = await bcrypt.hash(refreshToken, 10);
+  user.refreshTokenHash = refreshHash;
+  await user.save();
+
   return { 
     user: {
       _id: user._id,
@@ -46,7 +53,8 @@ const loginUser = async ({ email, password }, jwtSecret) => {
       role: user.role,
       createdAt: user.createdAt
     },
-    token: generateToken({ id: user._id, role: user.role }, jwtSecret) 
+    token: generateToken({ id: user._id, role: user.role }, jwtSecret),
+    refreshToken
   };
 };
 

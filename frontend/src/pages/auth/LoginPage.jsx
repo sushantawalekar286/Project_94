@@ -7,8 +7,8 @@ import { useAuth } from "../../hooks/useAuth";
 import Button from "../../components/common/Button";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@restaurant.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -36,15 +36,16 @@ export default function LoginPage() {
         </div>
         <h1 className="mt-6 text-4xl font-black">Staff Login</h1>
         <p className="mt-2 text-white/55">Secure JWT access for Admin and Chef dashboards.</p>
+        <p className="mt-2 text-sm text-white/40">Use your assigned staff credentials. Default demo account: admin@restaurant.com / admin123.</p>
         <label className="mt-6 block">
           <span className="text-sm text-white/60">Email</span>
-          <input className="input-field mt-2" value={email} onChange={(event) => setEmail(event.target.value)} />
+          <input className="input-field mt-2" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="name@company.com" />
         </label>
         <label className="mt-4 block">
           <span className="text-sm text-white/60">Password</span>
           <div className="relative mt-2">
             <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/35" />
-            <input className="input-field pl-11" value={password} onChange={(event) => setPassword(event.target.value)} type="password" />
+            <input className="input-field pl-11" value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" placeholder="Your password" />
           </div>
         </label>
         <Button className="mt-6 w-full" loading={loading}>Sign In</Button>
