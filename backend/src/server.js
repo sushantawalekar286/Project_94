@@ -1,9 +1,14 @@
+const path = require("path");
 require("dotenv").config();
 const http = require("http");
 const app = require("./app");
 const connectDB = require("./config/db");
 const { initializeSocket } = require("./config/socket");
 const logger = require("./utils/logger");
+
+if (!process.env.MONGODB_URI || !process.env.JWT_SECRET) {
+  require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
+}
 
 const PORT = process.env.PORT || 5000;
 

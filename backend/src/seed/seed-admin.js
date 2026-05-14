@@ -6,15 +6,15 @@ require("dotenv").config({ path: "../../.env" }); // Support running from seed d
 const seedAdmin = async () => {
   const passwordAdmin = await bcrypt.hash("admin123", 10);
   await User.findOneAndUpdate(
-    { email: "admin@cafe.com" },
-    { name: "Admin", email: "admin@cafe.com", password: passwordAdmin, role: "admin" },
+    { email: "admin@restaurant.com" },
+    { name: "Admin", email: "admin@restaurant.com", password: passwordAdmin, role: "admin" },
     { upsert: true, new: true }
   );
 
   const passwordChef = await bcrypt.hash("chef123", 10);
   await User.findOneAndUpdate(
-    { email: "chef@cafe.com" },
-    { name: "Chef", email: "chef@cafe.com", password: passwordChef, role: "chef" },
+    { email: "chef@restaurant.com" },
+    { name: "Chef", email: "chef@restaurant.com", password: passwordChef, role: "chef" },
     { upsert: true, new: true }
   );
   console.log("✅ Admin & Chef seeded successfully.");
