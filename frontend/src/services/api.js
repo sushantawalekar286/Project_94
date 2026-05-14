@@ -1,13 +1,18 @@
 import axios from "axios";
 
-const apiBaseUrl = import.meta.env.VITE_API_URL;
+const rawApiBaseUrl = import.meta.env.VITE_API_URL;
 
-if (!apiBaseUrl) {
+if (!rawApiBaseUrl) {
   throw new Error("VITE_API_URL is required. Set it in Vercel and local .env files.");
 }
 
+const apiBaseUrl = rawApiBaseUrl.endsWith("/api")
+  ? rawApiBaseUrl
+  : `${rawApiBaseUrl.replace(/\/$/, "")}/api`;
+
 const api = axios.create({
-  baseURL: apiBaseUrl
+  baseURL: apiBaseUrl,
+  withCredentials: true
 });
 
 api.interceptors.request.use((config) => {
