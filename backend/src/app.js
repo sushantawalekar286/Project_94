@@ -19,6 +19,7 @@ const tableRoutes = require("./routes/tableRoutes");
 const errorMiddleware = require("./middleware/errorMiddleware");
 
 const app = express();
+app.set("trust proxy", 1);
 
 // PHASE 6 — Security Middleware
 
@@ -29,7 +30,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https://images.unsplash.com", "https://res.cloudinary.com"],
-          connectSrc: ["'self'", env.CLIENT_URL || "http://localhost:5173"],
+          connectSrc: ["'self'", env.CLIENT_URL],
     }
   }
 }));
@@ -40,9 +41,15 @@ app.use(mongoSanitize());
 // 3. Data sanitization against XSS
 app.use(xss());
 
+// Log every incoming request for production debugging
+app.use((req, res, next) => {
+  console.log(`[API] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // 3. CORS configuration
 app.use(cors({ 
-  origin: env.CLIENT_URL || "http://localhost:5173", 
+  origin: env.CLIENT_URL, 
   credentials: true 
 }));
 
@@ -64,7 +71,7 @@ app.get("/health", (req, res) => {
   res.json({ 
     status: "ok", 
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: env.NODE_ENV
   });
 });
 

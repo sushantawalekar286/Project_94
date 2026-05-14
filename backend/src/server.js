@@ -12,21 +12,21 @@ const PORT = env.PORT || 5000;
 const start = async () => {
   try {
     // Connect to MongoDB
-    await connectDB(process.env.MONGODB_URI);
+    await connectDB(env.MONGODB_URI);
     
     // Create server instance
     const server = http.createServer(app);
     
     // Initialize Socket.IO
-    initializeSocket(server, process.env.CLIENT_URL);
+    initializeSocket(server);
     
     // Start listening
     server.listen(PORT, () => {
       logger.info(`🚀 Server running on http://localhost:${PORT}`);
       logger.info(`📍 API: http://localhost:${PORT}/api`);
       logger.info(`🔌 Socket.IO enabled`);
-      logger.info(`🌐 Client URL: ${process.env.CLIENT_URL}`);
-      logger.info(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`🌐 Client URL: ${env.CLIENT_URL}`);
+      logger.info(`✅ Environment: ${env.NODE_ENV}`);
     });
     
     // Graceful shutdown
