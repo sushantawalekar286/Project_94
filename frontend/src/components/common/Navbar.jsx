@@ -42,9 +42,14 @@ const Navbar = ({ showCart = true, tableNumber = null }) => {
             )}
             
             {showCart && !user && (
-              <Link to="/menu" className="btn-primary text-sm">
-                View Menu
-              </Link>
+              <>
+                <Link to="/menu" className="btn-primary text-sm">
+                  View Menu
+                </Link>
+                <Link to="/login" className="ml-3 btn-ghost text-sm">
+                  Staff Login
+                </Link>
+              </>
             )}
 
             {user && (
@@ -108,9 +113,14 @@ const Navbar = ({ showCart = true, tableNumber = null }) => {
               )}
               
               {!user && (
-                <Link to="/menu" className="btn-primary text-center w-full">
-                  View Menu
-                </Link>
+                  <>
+                    <Link to="/menu" className="btn-primary text-center w-full">
+                      View Menu
+                    </Link>
+                    <Link to="/login" className="btn-ghost text-center w-full">
+                      Staff Login
+                    </Link>
+                  </>
               )}
 
               {user && (
