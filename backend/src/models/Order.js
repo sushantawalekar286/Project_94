@@ -28,22 +28,20 @@ const orderSchema = new mongoose.Schema(
       required: true,
       min: 0
     },
-    // Complete status flow
     status: {
       type: String,
       enum: [
-        "Pending",      // Customer placed order, waiting for kitchen acceptance
-        "Accepted",     // Kitchen accepted the order
-        "Cooking",      // Chef is actively cooking
-        "Ready",        // Order ready for pickup/serving
-        "Served",       // Waiter served the order
-        "Paid",         // Payment received
-        "Completed",    // Order fully completed
-        "Cancelled"     // Order cancelled
+        "Pending",
+        "Accepted",
+        "Cooking",
+        "Ready",
+        "Served",
+        "Paid",
+        "Completed",
+        "Cancelled"
       ],
       default: "Pending"
     },
-    // Payment tracking
     paymentStatus: {
       type: String,
       enum: ["pending", "paid", "cancelled"],
@@ -54,17 +52,14 @@ const orderSchema = new mongoose.Schema(
       enum: ["cash", "card", "mobile", "other"],
       default: null
     },
-    // Kitchen notes
     specialInstructions: {
       type: String,
       default: ""
     },
-    // Inventory processing
     inventoryProcessed: { 
       type: Boolean, 
       default: false 
     },
-    // Timestamps for SLA tracking
     acceptedAt: { 
       type: Date,
       default: null
@@ -85,19 +80,16 @@ const orderSchema = new mongoose.Schema(
       type: Date,
       default: null
     },
-    // Assigned chef
     assignedChef: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null
     },
-    // Assigned waiter
     assignedWaiter: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null
     },
-    // Customer feedback
     rating: {
       type: Number,
       min: 1,
@@ -112,7 +104,6 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes for common queries
 orderSchema.index({ table: 1, status: 1 });
 orderSchema.index({ tableNumber: 1 });
 orderSchema.index({ status: 1 });

@@ -24,12 +24,10 @@ const userSchema = new mongoose.Schema(
       enum: ["admin", "chef", "waiter"], 
       default: "waiter" 
     },
-    // Persist refresh token hash for rotation/invalidation
     refreshTokenHash: { 
       type: String, 
-      select: false 
+      select: false
     },
-    // Additional user info
     phone: { 
       type: String, 
       default: "" 
@@ -39,12 +37,10 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "inactive", "suspended"],
       default: "active"
     },
-    // Last login tracking
     lastLogin: { 
       type: Date, 
       default: null 
     },
-    // Password reset token for forgot password feature
     resetToken: { 
       type: String, 
       select: false,
@@ -59,7 +55,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Index for common queries
 userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ status: 1 });

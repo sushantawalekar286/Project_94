@@ -29,16 +29,15 @@ const menuItemSchema = new mongoose.Schema(
       type: Boolean, 
       default: true 
     },
-    // New fields for comprehensive menu management
     preparationTime: { 
       type: Number, 
       default: 15, 
-      min: 1 // in minutes
+      min: 1 
     },
     spiceLevel: { 
       type: Number, 
       enum: [0, 1, 2, 3, 4, 5], 
-      default: 1 // 0=no spice, 5=very hot
+      default: 1 
     },
     vegetarian: { 
       type: Boolean, 
@@ -58,7 +57,6 @@ const menuItemSchema = new mongoose.Schema(
       default: 10, 
       min: 0 
     },
-    // Ingredients with quantities
     ingredients: [
       {
         ingredient: { 
@@ -78,12 +76,10 @@ const menuItemSchema = new mongoose.Schema(
         }
       }
     ],
-    // Track when item ran out of stock
     outOfStockSince: { 
       type: Date, 
       default: null 
     },
-    // Allergies/warnings
     allergens: [
       { 
         type: String, 
@@ -94,7 +90,6 @@ const menuItemSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes for common queries
 menuItemSchema.index({ isAvailable: 1, category: 1 });
 menuItemSchema.index({ vegetarian: 1, vegan: 1 });
 menuItemSchema.index({ stockQuantity: 1 });
