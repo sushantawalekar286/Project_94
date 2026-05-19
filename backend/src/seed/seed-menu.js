@@ -1,8 +1,7 @@
 const mongoose = require("mongoose");
 const Category = require("../models/Category");
 const MenuItem = require("../models/MenuItem");
-const Inventory = require("../models/Inventory");
-const Recipe = require("../models/Recipe");
+// Inventory and Recipe removed — seed only menu items and categories
 require("dotenv").config({ path: "../../.env" });
 
 const categoriesData = ["Burgers", "Pizza", "Drinks", "Desserts", "Coffee"];
@@ -54,28 +53,7 @@ const seedMenu = async () => {
       { upsert: true, new: true }
     );
 
-    // Recipes
-    const ingredients = recipeData[item.name];
-    if (ingredients) {
-      // Clear old recipes to avoid duplicates
-      await Recipe.deleteMany({ menuItem: menuItem._id });
-      
-      const recipeRecords = [];
-      for (const ing of ingredients) {
-        const inventoryItem = await Inventory.findOne({ name: ing.name });
-        if (inventoryItem) {
-          await Recipe.create({
-            menuItem: menuItem._id,
-            inventoryItem: inventoryItem._id,
-            quantity: ing.qty
-          });
-          recipeRecords.push({ inventoryItem: inventoryItem._id, quantity: ing.qty });
-        }
-      }
-      
-      // Update menuItem ingredients array for easy population (redundant but matches existing schema)
-      await MenuItem.findByIdAndUpdate(menuItem._id, { ingredients: recipeRecords });
-    }
+    // No recipe/inventory seeding — menu items are standalone now
   }
   console.log("✅ Categories, Menu Items, and Recipes seeded successfully.");
 };

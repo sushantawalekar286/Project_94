@@ -24,7 +24,6 @@ dotenv.config({ path: __dirname + "/../../.env" });
 const User = require("../models/User");
 const Table = require("../models/Table");
 const Category = require("../models/Category");
-const Ingredient = require("../models/Ingredient");
 const MenuItem = require("../models/MenuItem");
 const QRCode = require("../models/QRCode");
 
@@ -35,29 +34,6 @@ if (!MONGODB_URI) {
   throw new Error("MONGODB_URI environment variable is required");
 }
 
-// Ingredient database
-const INGREDIENTS_DB = [
-  { name: "Chicken Breast", unit: "kg", cost: 250, stock: 50 },
-  { name: "Paneer", unit: "kg", cost: 400, stock: 30 },
-  { name: "Tomato", unit: "kg", cost: 30, stock: 100 },
-  { name: "Onion", unit: "kg", cost: 20, stock: 100 },
-  { name: "Garlic", unit: "kg", cost: 150, stock: 20 },
-  { name: "Ginger", unit: "kg", cost: 80, stock: 20 },
-  { name: "Coriander Powder", unit: "kg", cost: 200, stock: 10 },
-  { name: "Cumin Powder", unit: "kg", cost: 150, stock: 10 },
-  { name: "Turmeric Powder", unit: "kg", cost: 100, stock: 10 },
-  { name: "Red Chili Powder", unit: "kg", cost: 180, stock: 10 },
-  { name: "Garam Masala", unit: "kg", cost: 300, stock: 5 },
-  { name: "Coconut Milk", unit: "liter", cost: 60, stock: 50 },
-  { name: "Yogurt", unit: "kg", cost: 40, stock: 30 },
-  { name: "Butter", unit: "kg", cost: 500, stock: 20 },
-  { name: "Oil", unit: "liter", cost: 150, stock: 100 },
-  { name: "Cream", unit: "liter", cost: 400, stock: 20 },
-  { name: "Rice", unit: "kg", cost: 60, stock: 100 },
-  { name: "Basmati Rice", unit: "kg", cost: 100, stock: 50 },
-  { name: "Wheat Flour", unit: "kg", cost: 30, stock: 100 },
-  { name: "Naan Dough", unit: "kg", cost: 80, stock: 30 },
-];
 
 // Menu categories
 const CATEGORIES = [
@@ -125,7 +101,6 @@ async function seedData() {
       User.deleteMany({}),
       Table.deleteMany({}),
       Category.deleteMany({}),
-      Ingredient.deleteMany({}),
       MenuItem.deleteMany({}),
       QRCode.deleteMany({})
     ]);
@@ -161,24 +136,8 @@ async function seedData() {
     const categories = await Category.insertMany(categoriesData);
     console.log(`✅ Created ${categories.length} categories`);
 
-    // 3. Create ingredients
-    console.log("\n🧂 Creating ingredients...");
-    const ingredientsData = INGREDIENTS_DB.map(ing => ({
-      name: ing.name,
-      unit: ing.unit,
-      currentStock: ing.stock,
-      costPerUnit: ing.cost,
-      minimumStockAlert: 10,
-      supplier: "Local Market",
-      isAvailable: ing.stock > 0
-    }));
-    const ingredients = await Ingredient.insertMany(ingredientsData);
-    console.log(`✅ Created ${ingredients.length} ingredients`);
-
-    // 4. Create menu items
+    // 3. Create menu items
     console.log("\n🍽️  Creating menu items...");
-    const ingredientMap = Object.fromEntries(ingredients.map(i => [i.name, i._id]));
-    
     const menuItemsData = MENU_ITEMS.map(item => {
       const category = categories.find(c => c.name === item.category);
       return {
@@ -190,22 +149,8 @@ async function seedData() {
         spiceLevel: item.spice,
         vegetarian: item.veg,
         vegan: false,
-        stockQuantity: item.stock,
-        lowStockThreshold: 5,
         imageUrl: `https://via.placeholder.com/300x200?text=${encodeURIComponent(item.name)}`,
         isAvailable: true,
-        ingredients: [
-          {
-            ingredient: ingredientMap["Onion"],
-            quantity: 1,
-            unit: "kg"
-          },
-          {
-            ingredient: ingredientMap["Garlic"],
-            quantity: 0.5,
-            unit: "kg"
-          }
-        ],
         allergens: []
       };
     });
@@ -283,7 +228,6 @@ async function seedData() {
     console.log("\n📊 System Setup:");
     console.log(`  - Users: ${users.length}`);
     console.log(`  - Categories: ${categories.length}`);
-    console.log(`  - Ingredients: ${ingredients.length}`);
     console.log(`  - Menu Items: ${menuItems.length}`);
     console.log(`  - Tables: ${tables.length}`);
     console.log(`  - QR Codes: ${qrCodesData.length}`);

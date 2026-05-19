@@ -1,5 +1,4 @@
 const { dailySales, monthlySales, todayStats, topMenuItems, revenueTimeline } = require("../services/salesService");
-const { getLowStockItems } = require("../services/inventoryService");
 
 /**
  * PHASE 8 — Enhanced salesController
@@ -28,13 +27,12 @@ const getMonthlySales = async (req, res, next) => {
 
 const getDashboardStats = async (req, res, next) => {
   try {
-    const [today, topItems, lowStock, timeline] = await Promise.all([
+    const [today, topItems, timeline] = await Promise.all([
       todayStats(),
       topMenuItems(5),
-      getLowStockItems(),
       revenueTimeline(7)
     ]);
-    res.json({ today, topItems, lowStockCount: lowStock.length, timeline });
+    res.json({ today, topItems, lowStockCount: 0, timeline });
   } catch (error) {
     next(error);
   }

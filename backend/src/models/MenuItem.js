@@ -47,44 +47,8 @@ const menuItemSchema = new mongoose.Schema(
       type: Boolean, 
       default: false 
     },
-    stockQuantity: { 
-      type: Number, 
-      default: 100, 
-      min: 0 
-    },
-    lowStockThreshold: { 
-      type: Number, 
-      default: 10, 
-      min: 0 
-    },
-    ingredients: [
-      {
-        ingredient: { 
-          type: mongoose.Schema.Types.ObjectId, 
-          ref: "Ingredient",
-          required: true 
-        },
-        quantity: { 
-          type: Number, 
-          default: 1, 
-          min: 0 
-        },
-        unit: {
-          type: String,
-          enum: ["kg", "g", "liter", "ml", "pcs", "dozen", "box"],
-          default: "pcs"
-        }
-      }
-    ],
-    outOfStockSince: { 
-      type: Date, 
-      default: null 
-    },
     allergens: [
-      { 
-        type: String, 
-        enum: ["nuts", "dairy", "gluten", "shellfish", "eggs", "soy", "sesame"]
-      }
+      { type: String }
     ]
   },
   { timestamps: true }
@@ -92,6 +56,5 @@ const menuItemSchema = new mongoose.Schema(
 
 menuItemSchema.index({ isAvailable: 1, category: 1 });
 menuItemSchema.index({ vegetarian: 1, vegan: 1 });
-menuItemSchema.index({ stockQuantity: 1 });
 
 module.exports = mongoose.model("MenuItem", menuItemSchema);

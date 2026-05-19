@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const seedAdmin = require("./seed-admin");
 const seedTables = require("./seed-tables");
-const seedInventory = require("./seed-inventory");
 const seedMenu = require("./seed-menu");
 const seedOrders = require("./seed-orders");
 require("dotenv").config({ path: "../../.env" });
@@ -13,7 +12,6 @@ const seedAll = async () => {
     
     await seedAdmin();
     await seedTables();
-    await seedInventory();
     await seedMenu();
     await seedOrders();
 

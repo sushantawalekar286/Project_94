@@ -1,7 +1,6 @@
 const Order = require("../models/Order");
 const Table = require("../models/Table");
 const MenuItem = require("../models/MenuItem");
-const { deductInventoryForOrder, validateStockForOrder } = require("./inventoryService");
 const Sale = require("../models/Sale");
 
 const TAX_RATE = 0.08;
@@ -54,14 +53,7 @@ const createOrder = async ({ tableId, tableNumber, token, items }) => {
     });
   }
 
-  // PHASE 4 — Validate stock BEFORE creating order
-  const stockCheck = await validateStockForOrder(enrichedItems);
-  if (!stockCheck.ok) {
-    const details = stockCheck.shortages
-      .map((s) => `${s.ingredient}: need ${s.required} ${s.unit}, have ${s.available}`)
-      .join("; ");
-    throw Object.assign(new Error(`Insufficient stock: ${details}`), { statusCode: 400 });
-  }
+  // Inventory system removed — no stock validation performed here
 
   const subtotal = enrichedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const tax = Number((subtotal * TAX_RATE).toFixed(2));
@@ -84,19 +76,8 @@ const createOrder = async ({ tableId, tableNumber, token, items }) => {
  * Called when order reaches "Completed" — record Sale.
  */
 const onOrderPreparing = async (order) => {
-  if (order.inventoryProcessed) return order;
-  
-  // Use atomic update to prevent duplicate processing if called concurrently
-  const updated = await Order.findOneAndUpdate(
-    { _id: order._id, inventoryProcessed: { $ne: true } },
-    { inventoryProcessed: true },
-    { new: true }
-  );
-  
-  if (!updated) return order; // Already processed by another request
-
-  await deductInventoryForOrder(updated.items, updated._id);
-  return updated;
+  // Inventory system removed — keep function as a no-op that returns the order
+  return order;
 };
 
 const completeOrder = async (order) => {

@@ -12,7 +12,8 @@ const authRefreshRoutes = require("./routes/authRefreshRoutes");
 const menuRoutes = require("./routes/menuRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const orderRoutes = require("./routes/orderRoutes");
-const inventoryRoutes = require("./routes/inventoryRoutes");
+// inventoryRoutes removed per new requirements
+const expenseRoutes = require("./routes/expenseRoutes");
 const salesRoutes = require("./routes/salesRoutes");
 const qrRoutes = require("./routes/qrRoutes");
 const tableRoutes = require("./routes/tableRoutes");
@@ -81,7 +82,8 @@ app.use("/api/auth", authRefreshRoutes);
 app.use("/api/menu", menuRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/orders", orderRoutes);
-app.use("/api/inventory", inventoryRoutes);
+// inventory API removed
+app.use("/api/expenses", expenseRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/qr", qrRoutes);
 app.use("/api/tables", tableRoutes);
@@ -96,7 +98,7 @@ app.get("/api", (req, res) => {
       menu: "/api/menu",
       categories: "/api/categories",
       orders: "/api/orders",
-      inventory: "/api/inventory",
+      inventory: "/api/inventory (removed)",
       sales: "/api/sales",
       qr: "/api/qr",
       tables: "/api/tables"

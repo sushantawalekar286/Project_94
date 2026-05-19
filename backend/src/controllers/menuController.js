@@ -1,5 +1,4 @@
 const MenuItem = require("../models/MenuItem");
-require("../models/Ingredient");
 
 /**
  * PHASE 2 & 7 — Fixed menuController
@@ -20,7 +19,6 @@ const listMenu = async (req, res, next) => {
 
     const items = await MenuItem.find(filter)
       .populate("category", "name isActive")
-      .populate("ingredients.ingredient", "name unit currentStock minimumStockAlert isAvailable")
       .lean()
       .sort({ createdAt: -1 });
     res.json(items);
@@ -31,20 +29,16 @@ const listMenu = async (req, res, next) => {
 
 const createMenuItem = async (req, res, next) => {
   try {
-    const { name, description, imageUrl, price, category, isAvailable, ingredients } = req.body;
+    const { name, description, imageUrl, price, category, isAvailable } = req.body;
     const item = await MenuItem.create({
       name,
       description,
       imageUrl,
       price,
       category,
-      isAvailable: isAvailable !== undefined ? isAvailable : true,
-      ingredients: ingredients || []
+      isAvailable: isAvailable !== undefined ? isAvailable : true
     });
-    const populated = await item.populate([
-      { path: "category", select: "name isActive" },
-      { path: "ingredients.ingredient", select: "name unit currentStock minimumStockAlert isAvailable" }
-    ]);
+    const populated = await item.populate([{ path: "category", select: "name isActive" }]);
     res.status(201).json(populated);
   } catch (error) {
     next(error);
@@ -54,8 +48,7 @@ const createMenuItem = async (req, res, next) => {
 const updateMenuItem = async (req, res, next) => {
   try {
     const item = await MenuItem.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
-      .populate("category", "name isActive")
-      .populate("ingredients.ingredient", "name unit currentStock minimumStockAlert isAvailable");
+      .populate("category", "name isActive");
     if (!item) return res.status(404).json({ success: false, message: "Menu item not found" });
     res.json(item);
   } catch (error) {
