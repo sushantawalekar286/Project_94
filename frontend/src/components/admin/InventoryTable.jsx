@@ -1,12 +1,5 @@
-export default function InventoryTable({ items = [] }) {
+export default function InventoryTable() {
   return (
-    <div className="table">
-      {items.map((item) => (
-        <div key={item._id} className="table-row">
-          <span>{item.name}</span>
-          <span>{item.stock}</span>
-        </div>
-      ))}
-    </div>
+    <div className="p-4 text-white/60">Inventory removed — component deprecated.</div>
   );
 }

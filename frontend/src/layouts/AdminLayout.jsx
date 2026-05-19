@@ -5,7 +5,6 @@ import { useAuth } from "../hooks/useAuth";
 const links = [
   ["/admin", "Dashboard", FaChartPie],
   ["/admin/menu", "Menu", FaUtensils],
-  ["/admin/inventory", "Inventory", FaWarehouse],
   ["/admin/orders", "Orders", FaClipboardList],
   ["/admin/qr", "QR Codes", FaQrcode]
 ];

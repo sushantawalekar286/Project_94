@@ -21,8 +21,14 @@ export function SocketProvider({ children }) {
     });
     
     setSocket(client);
-    
+
+    // Forward expense events to window so admin UI can listen globally
+    client.on("expense:created", (data) => {
+      try { window.dispatchEvent(new CustomEvent("expense:created", { detail: data })); } catch (e) { console.debug("expense event", data); }
+    });
+
     return () => {
+      client.off("expense:created");
       client.disconnect();
     };
   }, []);

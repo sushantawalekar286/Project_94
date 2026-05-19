@@ -69,8 +69,6 @@ const tableSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-tableSchema.index({ number: 1 });
-tableSchema.index({ token: 1 });
 tableSchema.index({ status: 1 });
 tableSchema.index({ activeOrder: 1 });
 

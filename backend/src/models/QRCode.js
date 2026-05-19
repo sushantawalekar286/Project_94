@@ -13,8 +13,7 @@ const qrCodeSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Table",
       required: true,
-      unique: true,       // One QR per table
-      index: true
+      unique: true       // One QR per table
     },
     token: { type: String, required: true },
     qrDataUrl: { type: String, required: true },  // base64 PNG for display/print

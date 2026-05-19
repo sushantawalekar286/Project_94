@@ -2,19 +2,15 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { FaPen, FaPlus, FaTrash, FaTimes } from "react-icons/fa";
 import { createCategory, createMenuItem, deleteMenuItem, getCategories, getMenu } from "../../services/menuService";
-import { getInventory } from "../../services/inventoryService";
 import Button from "../../components/common/Button";
 
-const emptyForm = { name: "", description: "", price: "", imageUrl: "", category: "", ingredients: [] };
+const emptyForm = { name: "", description: "", price: "", imageUrl: "", category: "" };
 
 export default function MenuManagement() {
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [inventory, setInventory] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [newCategory, setNewCategory] = useState("");
-  const [selectedIngredient, setSelectedIngredient] = useState("");
-  const [ingredientQty, setIngredientQty] = useState("");
 
   const refresh = () => {
     getMenu().then((res) => {
@@ -28,11 +24,6 @@ export default function MenuManagement() {
       setForm((current) => ({ ...current, category: current.category || cats[0]?._id || "" }));
     }).catch(() => setCategories([]));
 
-    getInventory().then((res) => {
-      const inv = res.data?.data || res.data || [];
-      setInventory(Array.isArray(inv) ? inv : []);
-      if (inv.length > 0) setSelectedIngredient(inv[0]._id);
-    }).catch(() => setInventory([]));
   };
 
   useEffect(() => { refresh(); }, []);
@@ -110,28 +101,6 @@ export default function MenuManagement() {
             {categories?.map((category) => <option key={category._id} value={category._id}>{category.name}</option>)}
           </select>
 
-          {/* Ingredient Selection */}
-          <div className="mb-4 rounded-xl border border-white/10 bg-black/20 p-3">
-            <h3 className="mb-2 font-bold text-white/80">Recipe Ingredients</h3>
-            <div className="flex gap-2 mb-2">
-              <select className="input-field flex-1 text-sm" value={selectedIngredient} onChange={(e) => setSelectedIngredient(e.target.value)}>
-                {inventory?.map(inv => <option key={inv._id} value={inv._id}>{inv.name} ({inv.unit})</option>)}
-              </select>
-              <input type="number" placeholder="Qty" className="input-field w-20 text-sm" value={ingredientQty} onChange={(e) => setIngredientQty(e.target.value)} />
-              <button type="button" onClick={addIngredient} className="rounded-xl bg-gold-500 px-3 font-bold text-black"><FaPlus /></button>
-            </div>
-            
-            <div className="space-y-2">
-              {form.ingredients.map((ing) => (
-                <div key={ing.inventoryItem} className="flex items-center justify-between rounded bg-white/5 px-2 py-1 text-sm">
-                  <span>{ing.name} <span className="text-gold-400">({ing.quantity} {ing.unit})</span></span>
-                  <button type="button" onClick={() => removeIngredient(ing.inventoryItem)} className="text-red-400 hover:text-red-300"><FaTimes /></button>
-                </div>
-              ))}
-              {form.ingredients.length === 0 && <p className="text-xs text-white/40">No ingredients added.</p>}
-            </div>
-          </div>
-
           <Button type="submit" className="w-full"><FaPlus /> Save Menu Item</Button>
           
           <div className="mt-5 flex gap-2 pt-4 border-t border-white/10">
@@ -149,12 +118,7 @@ export default function MenuManagement() {
                 <div>
                   <h3 className="font-bold">{item.name}</h3>
                   <p className="text-sm text-white/50">{item.category?.name} · ₹{item.price}</p>
-                  {item.ingredients?.length > 0 && (
-                    <p className="mt-1 text-xs text-gold-400">
-                      Recipe: {item.ingredients.map(i => `${i.inventoryItem?.name || 'Unknown'} (${i.quantity})`).join(", ")}
-                    </p>
-                  )}
-                </div>
+                    </div>
                 <div className="flex gap-2">
                   <button className="rounded-xl bg-white/10 p-3 text-gold-400"><FaPen /></button>
                   <button onClick={() => deleteMenuItem(item._id).then(refresh)} className="rounded-xl bg-red-500/10 p-3 text-red-300"><FaTrash /></button>

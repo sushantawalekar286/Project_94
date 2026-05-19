@@ -31,7 +31,7 @@ export default function OrderCard({ order, onStatusChange }) {
       </div>
       <div className="mt-5 rounded-2xl border border-green-300/10 bg-green-400/5 p-3 text-sm text-green-200">
         <FaLeaf className="mr-2 inline" />
-        Required ingredients are deducted from inventory when the order is completed.
+        Inventory was removed — expenses handled separately via Expenses.
       </div>
       <div className="mt-5 grid grid-cols-3 gap-2">
         {statuses.map((status) => (

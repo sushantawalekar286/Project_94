@@ -4,6 +4,7 @@ import { getOrders } from "../../services/orderService";
 import { getDashboardStats } from "../../services/salesService";
 import { useSocket } from "../../hooks/useSocket";
 import toast from "react-hot-toast";
+import { getMonthlyExpenses } from "../../services/expenseService";
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState([]);
@@ -13,6 +14,7 @@ export default function AdminDashboard() {
     lowStockCount: 0,
     timeline: []
   });
+  const [monthlyExpenses, setMonthlyExpenses] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const socket = useSocket();
@@ -32,9 +34,14 @@ export default function AdminDashboard() {
     });
   }).catch(() => {});
 
+  const refreshExpenses = () => getMonthlyExpenses().then((res) => {
+    const d = res.data?.data || res.data || {};
+    setMonthlyExpenses(d || {});
+  }).catch(() => setMonthlyExpenses({}));
+
   useEffect(() => {
     setLoading(true);
-    Promise.all([refreshOrders(), refreshStats()])
+    Promise.all([refreshOrders(), refreshStats(), refreshExpenses()])
       .then(() => setError(false))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
@@ -48,19 +55,30 @@ export default function AdminDashboard() {
       toast.success("New order received");
       refreshOrders();
       refreshStats();
+      refreshExpenses();
     };
     
     const handleOrderUpdate = () => {
       refreshOrders();
       refreshStats();
+      refreshExpenses();
     };
     
+    const handleExpenseCreated = () => {
+      toast.success("New expense recorded");
+      refreshExpenses();
+      refreshStats();
+    };
+
     socket.on("order:new", handleNewOrder);
     socket.on("order:updated", handleOrderUpdate);
+    // Also listen for expense events forwarded via window (SocketContext forwards to window)
+    window.addEventListener("expense:created", handleExpenseCreated);
 
     return () => {
       socket.off("order:new", handleNewOrder);
       socket.off("order:updated", handleOrderUpdate);
+      window.removeEventListener("expense:created", handleExpenseCreated);
     };
   }, [socket]);
 
@@ -79,7 +97,7 @@ export default function AdminDashboard() {
 
   return (
     <section className="px-4 py-6 sm:px-8">
-      <p className="text-sm uppercase tracking-[0.24em] text-gold-400">Admin monitors sales and inventory</p>
+      <p className="text-sm uppercase tracking-[0.24em] text-gold-400">Admin monitors sales and expenses</p>
       <h1 className="mt-2 text-4xl font-black">Admin Dashboard</h1>
 
       <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
