@@ -1,4 +1,4 @@
-const { createExpense, listExpenses, monthlyTotals } = require("../services/expenseService");
+const { createExpense, listExpenses, updateExpense, deleteExpense, monthlyTotals, expenseSummary } = require("../services/expenseService");
 const { getIO } = require("../config/socket");
 
 const create = async (req, res, next) => {
@@ -23,6 +23,24 @@ const create = async (req, res, next) => {
     }
 
     res.status(201).json(expense);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const update = async (req, res, next) => {
+  try {
+    const expense = await updateExpense(req.params.id, req.body);
+    res.json(expense);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const remove = async (req, res, next) => {
+  try {
+    await deleteExpense(req.params.id);
+    res.status(204).send();
   } catch (error) {
     next(error);
   }
@@ -54,4 +72,15 @@ const monthly = async (req, res, next) => {
   }
 };
 
-module.exports = { create, list, monthly };
+const summary = async (req, res, next) => {
+  try {
+    const year = Number(req.query.year) || new Date().getFullYear();
+    const month = Number(req.query.month) || new Date().getMonth() + 1;
+    const data = await expenseSummary(year, month);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { create, list, update, remove, monthly, summary };

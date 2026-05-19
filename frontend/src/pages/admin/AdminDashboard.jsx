@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { FaArrowTrendUp, FaBurger, FaClipboardCheck, FaTriangleExclamation } from "react-icons/fa6";
+import { FaArrowTrendUp, FaBurger, FaClipboardCheck, FaMoneyBillWave, FaTriangleExclamation } from "react-icons/fa6";
 import { getOrders } from "../../services/orderService";
 import { getDashboardStats } from "../../services/salesService";
 import { useSocket } from "../../hooks/useSocket";
 import toast from "react-hot-toast";
-import { getMonthlyExpenses } from "../../services/expenseService";
+import { getExpenseSummary } from "../../services/expenseService";
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState([]);
@@ -14,7 +14,7 @@ export default function AdminDashboard() {
     lowStockCount: 0,
     timeline: []
   });
-  const [monthlyExpenses, setMonthlyExpenses] = useState({});
+  const [expenseSummary, setExpenseSummary] = useState({ monthTotal: 0, todayTotal: 0, weekTotal: 0, monthlySeries: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const socket = useSocket();
@@ -34,10 +34,15 @@ export default function AdminDashboard() {
     });
   }).catch(() => {});
 
-  const refreshExpenses = () => getMonthlyExpenses().then((res) => {
-    const d = res.data?.data || res.data || {};
-    setMonthlyExpenses(d || {});
-  }).catch(() => setMonthlyExpenses({}));
+  const refreshExpenses = () => getExpenseSummary().then((res) => {
+    const d = res.data || {};
+    setExpenseSummary({
+      monthTotal: d.monthTotal || 0,
+      todayTotal: d.todayTotal || 0,
+      weekTotal: d.weekTotal || 0,
+      monthlySeries: d.monthlySeries || []
+    });
+  }).catch(() => setExpenseSummary({ monthTotal: 0, todayTotal: 0, weekTotal: 0, monthlySeries: [] }));
 
   useEffect(() => {
     setLoading(true);
@@ -87,7 +92,9 @@ export default function AdminDashboard() {
 
   const cards = [
     ["Today's Revenue", `₹${stats.today?.todayRevenue?.toFixed(2) || "0.00"}`, FaArrowTrendUp],
+    ["Today's Expenses", `₹${Number(expenseSummary.todayTotal || 0).toFixed(2)}`, FaMoneyBillWave],
     ["Pending Orders", stats.today?.pendingOrders || 0, FaClipboardCheck],
+    ["Monthly Expenses", `₹${Number(expenseSummary.monthTotal || 0).toFixed(2)}`, FaMoneyBillWave],
     ["Best Selling", stats.topItems?.[0]?._id || "None", FaBurger],
     ["Low Stock Alerts", stats.lowStockCount || 0, FaTriangleExclamation]
   ];

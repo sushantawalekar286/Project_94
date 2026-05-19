@@ -20,10 +20,10 @@ export default function OrderCard({ order, onStatusChange }) {
       </div>
       <div className="mt-5 space-y-3">
         {order.items?.map((item) => (
-          <div key={`${order._id}-${item.name}`} className="flex items-center justify-between rounded-2xl bg-black/30 p-3">
+          <div key={`${order._id}-${item.name}-${item.portionType || 'single'}`} className="flex items-center justify-between rounded-2xl bg-black/30 p-3">
             <div className="flex items-center gap-3">
               <FaUtensils className="text-primary-400" />
-              <span className="font-semibold">{item.name}</span>
+              <span className="font-semibold">{item.name} {item.portionType && item.portionType !== 'single' ? `(${item.portionType})` : ''}</span>
             </div>
             <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-bold">x{item.quantity}</span>
           </div>

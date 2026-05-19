@@ -22,6 +22,10 @@ const fallbackMenu = fallbackCategories.flatMap((category, categoryIndex) =>
     _id: `${category}-${count}`,
     name: `${category === "Fries" ? "Loaded" : "Signature"} ${category} ${count}`,
     description: "Chef curated flavors with premium ingredients and a polished restaurant finish.",
+    pricingType: count === 2 ? "half-full" : "single",
+    singlePrice: 129 + categoryIndex * 70 + count * 35,
+    halfPrice: 99 + categoryIndex * 40 + count * 20,
+    fullPrice: 149 + categoryIndex * 75 + count * 40,
     price: 129 + categoryIndex * 70 + count * 35,
     rating: 4.6 + count / 10,
     imageUrl: fallbackImages[category],
@@ -122,8 +126,15 @@ export default function MenuPage() {
                 key={item._id}
                 item={item}
                 index={index}
-                onAdd={(selected, quantity) => {
-                  addItem({ menuItem: selected._id, name: selected.name, price: selected.price, quantity, imageUrl: selected.imageUrl });
+                onAdd={(selected, quantity, portionType, price) => {
+                  addItem({
+                    menuItem: selected._id,
+                    name: selected.name,
+                    price,
+                    quantity,
+                    imageUrl: selected.imageUrl,
+                    portionType
+                  });
                   toast.success(`${selected.name} added to cart`);
                 }}
               />

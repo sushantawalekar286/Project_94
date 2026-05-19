@@ -99,6 +99,7 @@ app.get("/api", (req, res) => {
       categories: "/api/categories",
       orders: "/api/orders",
       inventory: "/api/inventory (removed)",
+      expenses: "/api/expenses",
       sales: "/api/sales",
       qr: "/api/qr",
       tables: "/api/tables"

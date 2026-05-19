@@ -6,7 +6,7 @@ export default function ProtectedRoute({ roles, children }) {
   
   if (loading) return <div className="flex h-screen items-center justify-center text-white">Loading...</div>;
   if (!token || !user) return <Navigate to="/login" replace />;
-  if (roles?.length && !roles.includes(user.role)) return <Navigate to="/" replace />;
+  if (roles?.length && !roles.includes(user.role)) return <Navigate to="/login" replace />;
   
   return children;
 }

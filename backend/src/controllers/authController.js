@@ -21,7 +21,7 @@ const login = async (req, res, next) => {
       res.cookie('refreshToken', result.refreshToken, {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
       });
       // Don't leak refreshToken in long-term logs but return for dev clients

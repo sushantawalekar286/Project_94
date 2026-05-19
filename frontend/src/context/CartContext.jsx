@@ -10,10 +10,11 @@ export function CartProvider({ children }) {
 
   const addItem = useCallback((item) => {
     setItems((current) => {
-      const found = current.find((entry) => entry.menuItem === item.menuItem);
+      const portionType = item.portionType || "single";
+      const found = current.find((entry) => entry.menuItem === item.menuItem && (entry.portionType || "single") === portionType);
       const next = found
         ? current.map((entry) =>
-          entry.menuItem === item.menuItem ? { ...entry, quantity: entry.quantity + item.quantity } : entry
+          entry.menuItem === item.menuItem && (entry.portionType || "single") === portionType ? { ...entry, quantity: entry.quantity + item.quantity } : entry
         )
         : [...current, item];
       localStorage.setItem("cartItems", JSON.stringify(next));
@@ -21,19 +22,19 @@ export function CartProvider({ children }) {
     });
   }, []);
 
-  const updateQuantity = useCallback((menuItem, quantity) => {
+  const updateQuantity = useCallback((menuItem, quantity, portionType = "single") => {
     setItems((current) => {
       const next = current
-        .map((item) => (item.menuItem === menuItem ? { ...item, quantity: Math.max(1, quantity) } : item))
+        .map((item) => (item.menuItem === menuItem && (item.portionType || "single") === portionType ? { ...item, quantity: Math.max(1, quantity) } : item))
         .filter((item) => item.quantity > 0);
       localStorage.setItem("cartItems", JSON.stringify(next));
       return next;
     });
   }, []);
 
-  const removeItem = useCallback((menuItem) => {
+  const removeItem = useCallback((menuItem, portionType = "single") => {
     setItems((current) => {
-      const next = current.filter((item) => item.menuItem !== menuItem);
+      const next = current.filter((item) => !(item.menuItem === menuItem && (item.portionType || "single") === portionType));
       localStorage.setItem("cartItems", JSON.stringify(next));
       return next;
     });

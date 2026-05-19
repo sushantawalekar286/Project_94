@@ -1,10 +1,11 @@
 import { NavLink } from "react-router-dom";
-import { FaChartPie, FaClipboardList, FaQrcode, FaUtensils, FaWarehouse, FaSignOutAlt } from "react-icons/fa";
+import { FaChartPie, FaClipboardList, FaMoneyBillWave, FaQrcode, FaUtensils, FaSignOutAlt } from "react-icons/fa";
 import { useAuth } from "../hooks/useAuth";
 
 const links = [
   ["/admin", "Dashboard", FaChartPie],
   ["/admin/menu", "Menu", FaUtensils],
+  ["/admin/expenses", "Expenses", FaMoneyBillWave],
   ["/admin/orders", "Orders", FaClipboardList],
   ["/admin/qr", "QR Codes", FaQrcode]
 ];

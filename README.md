@@ -2,6 +2,8 @@
 
 Full-stack restaurant ordering platform with React, Express, MongoDB, and Socket.IO.
 
+Inventory management has been removed. Material usage is now tracked through the lightweight Expenses system and admin analytics dashboard.
+
 ## Structure
 
 - `frontend/` React + Vite customer, chef, and admin UI

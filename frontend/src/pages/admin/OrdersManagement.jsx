@@ -28,7 +28,7 @@ export default function OrdersManagement() {
               <StatusBadge status={order.status} />
             </div>
             <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {order.items?.map((item) => <div key={item.name} className="rounded-2xl bg-black/30 p-3">{item.name} x{item.quantity}</div>)}
+              {order.items?.map((item) => <div key={`${item.name}-${item.portionType || 'single'}`} className="rounded-2xl bg-black/30 p-3">{item.name} {item.portionType && item.portionType !== 'single' ? `(${item.portionType})` : ''} x{item.quantity}</div>)}
             </div>
             <p className="mt-4 text-right text-xl font-black text-gold-400">₹{order.total}</p>
           </article>

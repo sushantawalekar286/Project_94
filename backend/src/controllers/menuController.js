@@ -15,7 +15,7 @@ const listMenu = async (req, res, next) => {
   try {
     const filter = {};
     // Admins see all items; public only sees available ones
-    if (!req.user) filter.isAvailable = true;
+    if (!req.user) filter.$or = [{ isAvailable: true }, { available: true }];
 
     const items = await MenuItem.find(filter)
       .populate("category", "name isActive")
@@ -29,14 +29,26 @@ const listMenu = async (req, res, next) => {
 
 const createMenuItem = async (req, res, next) => {
   try {
-    const { name, description, imageUrl, price, category, isAvailable } = req.body;
+    const image = req.body.image || req.body.imageUrl || "";
+    const pricingType = req.body.pricingType || "single";
     const item = await MenuItem.create({
-      name,
-      description,
-      imageUrl,
-      price,
-      category,
-      isAvailable: isAvailable !== undefined ? isAvailable : true
+      name: req.body.name,
+      description: req.body.description,
+      image,
+      imageUrl: image,
+      pricingType,
+      price: req.body.price ?? null,
+      singlePrice: pricingType === "single" ? (req.body.singlePrice ?? req.body.price ?? null) : req.body.singlePrice ?? null,
+      halfPrice: pricingType === "half-full" ? req.body.halfPrice ?? null : null,
+      fullPrice: pricingType === "half-full" ? (req.body.fullPrice ?? req.body.price ?? null) : req.body.fullPrice ?? null,
+      category: req.body.category,
+      available: req.body.available ?? req.body.isAvailable ?? true,
+      isAvailable: req.body.isAvailable ?? req.body.available ?? true,
+      preparationTime: req.body.preparationTime,
+      spiceLevel: req.body.spiceLevel,
+      vegetarian: req.body.vegetarian,
+      vegan: req.body.vegan,
+      allergens: req.body.allergens
     });
     const populated = await item.populate([{ path: "category", select: "name isActive" }]);
     res.status(201).json(populated);
@@ -47,7 +59,14 @@ const createMenuItem = async (req, res, next) => {
 
 const updateMenuItem = async (req, res, next) => {
   try {
-    const item = await MenuItem.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+    const image = req.body.image || req.body.imageUrl;
+    const nextBody = {
+      ...req.body,
+      ...(image !== undefined ? { image, imageUrl: image } : {}),
+      ...(req.body.available !== undefined ? { isAvailable: req.body.available } : {}),
+      ...(req.body.isAvailable !== undefined ? { available: req.body.isAvailable } : {})
+    };
+    const item = await MenuItem.findByIdAndUpdate(req.params.id, nextBody, { new: true, runValidators: true })
       .populate("category", "name isActive");
     if (!item) return res.status(404).json({ success: false, message: "Menu item not found" });
     res.json(item);

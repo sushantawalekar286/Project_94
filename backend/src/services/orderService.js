@@ -5,6 +5,14 @@ const Sale = require("../models/Sale");
 
 const TAX_RATE = 0.08;
 
+const getItemPrice = (menuItem, portionType = "single") => {
+  if (menuItem.pricingType === "half-full") {
+    if (portionType === "half") return Number(menuItem.halfPrice ?? menuItem.price ?? menuItem.fullPrice ?? 0);
+    return Number(menuItem.fullPrice ?? menuItem.price ?? menuItem.singlePrice ?? 0);
+  }
+  return Number(menuItem.singlePrice ?? menuItem.price ?? 0);
+};
+
 /**
  * PHASE 2 & 4 — Fixed orderService
  * 
@@ -44,12 +52,15 @@ const createOrder = async ({ tableId, tableNumber, token, items }) => {
   for (const item of items) {
     const menuItem = await MenuItem.findById(item.menuItem);
     if (!menuItem) throw new Error(`Menu item not found: ${item.menuItem}`);
-    if (!menuItem.isAvailable) throw new Error(`"${menuItem.name}" is currently unavailable`);
+    if (!(menuItem.isAvailable ?? menuItem.available)) throw new Error(`"${menuItem.name}" is currently unavailable`);
+    const portionType = item.portionType === "half" || item.portionType === "full" ? item.portionType : "single";
+    const price = getItemPrice(menuItem, portionType);
     enrichedItems.push({
       menuItem: menuItem._id,
       name: menuItem.name,
-      price: menuItem.price,
-      quantity: item.quantity
+      price,
+      quantity: item.quantity,
+      portionType
     });
   }
 

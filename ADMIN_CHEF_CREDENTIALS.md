@@ -11,7 +11,7 @@ The system comes with pre-configured admin and chef accounts. These are created 
 - **Permissions:** 
   - View/Edit Menu Items
   - Manage Categories
-  - Manage Inventory
+  - View Expenses Dashboard
   - View Sales Reports
   - Generate QR Codes
   - Manage Tables

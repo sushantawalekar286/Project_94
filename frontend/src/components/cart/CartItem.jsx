@@ -24,7 +24,7 @@ const CartItem = ({ item, onRemove, onQuantityChange }) => {
       {/* Item Details */}
       <div className="flex-1 min-w-0">
         <h4 className="text-white font-semibold line-clamp-1">{item.name}</h4>
-        <p className="text-dark-400 text-sm">${item.price}</p>
+        <p className="text-dark-400 text-sm">${item.price} {item.portionType && item.portionType !== 'single' ? `(${item.portionType})` : ''}</p>
         <p className="text-primary-500 font-bold text-sm mt-1">Subtotal: ${subtotal}</p>
       </div>
 
@@ -32,11 +32,11 @@ const CartItem = ({ item, onRemove, onQuantityChange }) => {
       <div className="flex items-center gap-3">
         <QuantitySelector
           value={item.quantity || 1}
-          onChange={(qty) => onQuantityChange(item._id || item.menuItem, qty)}
+          onChange={(qty) => onQuantityChange(item._id || item.menuItem, qty, item.portionType)}
         />
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => onRemove(item._id || item.menuItem)}
+          onClick={() => onRemove(item._id || item.menuItem, item.portionType)}
           className="p-2 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-colors"
         >
           <FiX size={18} />

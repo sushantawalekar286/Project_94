@@ -15,15 +15,15 @@ const refresh = async (req, res, next) => {
     const user = users.find(u => bcrypt.compareSync(refreshToken, u.refreshTokenHash || ''));
     if (!user) return res.status(401).json({ success: false });
 
-    // Issue new access token
-    const accessToken = jwt.sign({ id: user._id }, env.JWT_SECRET, { expiresIn: '15m' });
+    // Issue new access token with role preserved for route guards
+    const accessToken = jwt.sign({ id: user._id, role: user.role }, env.JWT_SECRET, { expiresIn: '15m' });
 
     // Rotate refresh token
     const newRefresh = crypto.randomBytes(64).toString('hex');
     user.refreshTokenHash = bcrypt.hashSync(newRefresh, 10);
     await user.save();
 
-    res.json({ success: true, accessToken, refreshToken: newRefresh });
+    res.json({ success: true, accessToken, refreshToken: newRefresh, user: { _id: user._id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt } });
   } catch (err) {
     next(err);
   }

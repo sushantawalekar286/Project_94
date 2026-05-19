@@ -22,7 +22,7 @@ export default function CartPage() {
       const res = await placeOrder({
         tableNumber: tableSession.tableNumber,
         token: tableSession.token,
-        items: items.map(({ menuItem, quantity }) => ({ menuItem, quantity }))
+        items: items.map(({ menuItem, quantity, portionType }) => ({ menuItem, quantity, portionType }))
       });
       clearCart();
       navigate("/customer/success", { state: { order: res.data } });
@@ -48,7 +48,7 @@ export default function CartPage() {
               {items.length ? (
                 items.map((item) => (
                   <motion.div
-                    key={item.menuItem}
+                    key={`${item.menuItem}-${item.portionType || "single"}`}
                     layout
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -58,14 +58,14 @@ export default function CartPage() {
                     <img className="h-24 w-24 rounded-2xl object-cover" src={item.imageUrl || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80"} alt={item.name} />
                     <div className="min-w-0 flex-1">
                       <h2 className="truncate text-lg font-bold">{item.name}</h2>
-                      <p className="mt-1 text-gold-400">₹{item.price}</p>
+                      <p className="mt-1 text-gold-400">₹{item.price}{item.portionType && item.portionType !== "single" ? ` · ${item.portionType}` : ""}</p>
                       <div className="mt-4 flex items-center justify-between">
                         <div className="flex items-center rounded-full border border-white/10 bg-black/30">
-                          <button className="p-3" onClick={() => updateQuantity(item.menuItem, item.quantity - 1)}><FaMinus size={12} /></button>
+                          <button className="p-3" onClick={() => updateQuantity(item.menuItem, item.quantity - 1, item.portionType)}><FaMinus size={12} /></button>
                           <span className="min-w-8 text-center font-bold">{item.quantity}</span>
-                          <button className="p-3" onClick={() => updateQuantity(item.menuItem, item.quantity + 1)}><FaPlus size={12} /></button>
+                          <button className="p-3" onClick={() => updateQuantity(item.menuItem, item.quantity + 1, item.portionType)}><FaPlus size={12} /></button>
                         </div>
-                        <button className="rounded-full p-3 text-red-300 hover:bg-red-500/10" onClick={() => removeItem(item.menuItem)}>
+                        <button className="rounded-full p-3 text-red-300 hover:bg-red-500/10" onClick={() => removeItem(item.menuItem, item.portionType)}>
                           <FaTrash />
                         </button>
                       </div>

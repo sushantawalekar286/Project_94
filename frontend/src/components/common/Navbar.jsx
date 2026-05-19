@@ -1,14 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FiShoppingCart, FiMenu, FiX, FiLogOut } from 'react-icons/fi';
-import { useAuth } from '../hooks/useAuth';
-import { useCart } from '../hooks/useCart';
+import { useAuth } from '../../hooks/useAuth';
+import { useCart } from '../../hooks/useCart';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Navbar = ({ showCart = true, tableNumber = null }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { cart } = useCart();
+  const { items: cart = [] } = useCart();
   const [isOpen, setIsOpen] = React.useState(false);
 
   const handleLogout = () => {

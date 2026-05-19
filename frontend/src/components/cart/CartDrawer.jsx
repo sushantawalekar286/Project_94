@@ -38,7 +38,7 @@ const CartDrawer = ({ items = [], onRemove, onQuantityChange, onCheckout, open =
           <AnimatePresence>
             {items.map((item) => (
               <CartItem
-                key={item._id || item.menuItem}
+                key={`${item._id || item.menuItem}-${item.portionType || 'single'}`}
                 item={item}
                 onRemove={onRemove}
                 onQuantityChange={onQuantityChange}
