@@ -20,7 +20,12 @@ export default function LoginPage() {
       const res = await loginRequest({ email, password });
       login(res.data);
       toast.success("Signed in successfully");
-      navigate(res.data.user.role === "admin" ? "/admin" : "/chef");
+      const destination = res.data.user.role === "admin"
+        ? "/admin"
+        : res.data.user.role === "chef"
+          ? "/chef"
+          : "/scan";
+      navigate(destination, { replace: true });
     } catch (error) {
       toast.error(error.response?.data?.message || "Login failed");
     } finally {
@@ -48,7 +53,7 @@ export default function LoginPage() {
             <input className="input-field pl-11" value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" placeholder="Your password" />
           </div>
         </label>
-        <Button className="mt-6 w-full" loading={loading}>Sign In</Button>
+        <Button type="submit" className="mt-6 w-full" loading={loading}>Sign In</Button>
       </form>
     </section>
   );
