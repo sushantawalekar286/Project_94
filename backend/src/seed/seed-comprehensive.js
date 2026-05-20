@@ -260,12 +260,18 @@ async function seedData() {
     console.log("\n  WAITERS:");
     console.log("    Emails: waiter[1-5]@restaurant.com");
     console.log("    Password: waiter123");
+    const finalUsersCount = await User.countDocuments();
+    const finalCategoriesCount = await Category.countDocuments();
+    const finalMenuItemsCount = await MenuItem.countDocuments();
+    const finalTablesCount = await Table.countDocuments();
+    const finalQRCodesCount = await QRCode.countDocuments();
+
     console.log("\n📊 System Setup:");
-    console.log(`  - Users: ${users.length}`);
-    console.log(`  - Categories: ${categories.length}`);
-    console.log(`  - Menu Items: ${menuItems.length}`);
-    console.log(`  - Tables: ${tables.length}`);
-    console.log(`  - QR Codes: ${qrCodesData.length}`);
+    console.log(`  - Users: ${finalUsersCount}`);
+    console.log(`  - Categories: ${finalCategoriesCount}`);
+    console.log(`  - Menu Items: ${finalMenuItemsCount}`);
+    console.log(`  - Tables: ${finalTablesCount}`);
+    console.log(`  - QR Codes: ${finalQRCodesCount}`);
     console.log("\n🚀 System is ready for production!");
     console.log("=".repeat(60));
 

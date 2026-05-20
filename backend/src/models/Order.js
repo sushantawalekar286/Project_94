@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const orderItemSchema = require("./OrderItem");
+require("./Table"); // Ensure Table schema is registered before population
 
 const orderSchema = new mongoose.Schema(
   {

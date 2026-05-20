@@ -26,7 +26,7 @@ export default function CartPage() {
         items: items.map(({ menuItem, quantity, portionType }) => ({ menuItem, quantity, portionType }))
       });
       clearCart();
-      navigate("/customer/success", { state: { order: res.data } });
+      navigate("/customer/success", { state: { order: res.data?.order || res.data } });
     } catch (error) {
       toast.error(error.response?.data?.message || "Unable to place order");
     } finally {

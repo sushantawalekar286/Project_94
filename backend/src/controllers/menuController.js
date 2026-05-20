@@ -13,17 +13,15 @@ const MenuItem = require("../models/MenuItem");
 
 const listMenu = async (req, res, next) => {
   try {
-    const filter = {};
-    // Admins see all items; public only sees available ones
-    if (!req.user) filter.$or = [{ isAvailable: true }, { available: true }];
-
-    const items = await MenuItem.find(filter)
+    const items = await MenuItem.find({})
       .populate("category", "name isActive")
       .lean()
       .sort({ createdAt: -1 });
     res.json(items);
   } catch (error) {
     next(error);
+  } finally {
+    console.log("[MENU LIST FINALLY] Completed listMenu operation");
   }
 };
 
@@ -54,6 +52,8 @@ const createMenuItem = async (req, res, next) => {
     res.status(201).json(populated);
   } catch (error) {
     next(error);
+  } finally {
+    console.log("[MENU CREATE FINALLY] Completed createMenuItem operation");
   }
 };
 
@@ -72,6 +72,8 @@ const updateMenuItem = async (req, res, next) => {
     res.json(item);
   } catch (error) {
     next(error);
+  } finally {
+    console.log(`[MENU UPDATE FINALLY] Completed updateMenuItem operation for ID: ${req.params.id}`);
   }
 };
 
@@ -82,7 +84,26 @@ const deleteMenuItem = async (req, res, next) => {
     res.status(204).send();
   } catch (error) {
     next(error);
+  } finally {
+    console.log(`[MENU DELETE FINALLY] Completed deleteMenuItem operation for ID: ${req.params.id}`);
   }
 };
 
-module.exports = { listMenu, createMenuItem, updateMenuItem, deleteMenuItem };
+const updateAvailability = async (req, res, next) => {
+  try {
+    const { isAvailable } = req.body;
+    const item = await MenuItem.findByIdAndUpdate(
+      req.params.id,
+      { isAvailable, available: isAvailable },
+      { new: true, runValidators: true }
+    ).populate("category", "name isActive");
+    if (!item) return res.status(404).json({ success: false, message: "Menu item not found" });
+    res.json(item);
+  } catch (error) {
+    next(error);
+  } finally {
+    console.log(`[MENU AVAILABILITY FINALLY] Completed updateAvailability for ID: ${req.params.id}`);
+  }
+};
+
+module.exports = { listMenu, createMenuItem, updateMenuItem, deleteMenuItem, updateAvailability };

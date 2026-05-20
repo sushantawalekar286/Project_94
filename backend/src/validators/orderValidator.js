@@ -2,9 +2,9 @@ const Joi = require("joi");
 const { ORDER_STATUS } = require("../constants/orderStatus");
 
 const orderSchema = Joi.object({
-  tableId: Joi.string().optional(),
-  tableNumber: Joi.number().integer().min(1).optional(),
-  token: Joi.string().allow("").optional(),
+  tableId: Joi.string().allow(null).optional(),
+  tableNumber: Joi.number().integer().min(1).allow(null).optional(),
+  token: Joi.string().allow("", null).optional(),
   items: Joi.array()
     .items(
       Joi.object({

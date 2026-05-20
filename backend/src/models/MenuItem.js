@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+require("./Category"); // Ensure Category schema is registered before population
 
 const menuItemSchema = new mongoose.Schema(
   {

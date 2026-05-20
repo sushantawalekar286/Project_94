@@ -24,6 +24,8 @@ const listOrders = async (req, res, next) => {
     res.json(orders);
   } catch (error) {
     next(error);
+  } finally {
+    console.log(`[ORDER LIST FINALLY] Completed order listing`);
   }
 };
 
@@ -34,24 +36,38 @@ const getOrderById = async (req, res, next) => {
     res.json(order);
   } catch (error) {
     next(error);
+  } finally {
+    console.log(`[ORDER GET FINALLY] Completed order fetch for ID: ${req.params.id}`);
   }
 };
 
 const placeOrder = async (req, res, next) => {
+  const orderData = req.body;
+  let savedOrder = null;
   try {
-    console.log(`[ORDER REQUEST] Place order request received for Table ${req.body.tableNumber || "unknown"}`);
-    const order = await createOrder(req.body);
+    console.log(orderData);
+    const order = await createOrder(orderData);
+    savedOrder = order;
+    console.log(savedOrder);
+
     const io = getIO();
     if (io) {
       io.to("chef").emit("order:new", order);
       io.to("admin").emit("order:new", order);
     }
-    res.status(201).json(order);
+
+    return res.status(201).json({
+      success: true,
+      message: "Order placed successfully",
+      order: savedOrder
+    });
   } catch (error) {
-    console.error(`[ORDER ERROR] Failed to place order: ${error.message}`);
+    console.error(error);
     // Propagate stock errors as 400
     if (error.statusCode) res.status(error.statusCode);
     next(error);
+  } finally {
+    console.log(`[ORDER PLACE FINALLY] Completed order placement attempt for Table: ${orderData?.tableNumber || "unknown"}`);
   }
 };
 
@@ -102,6 +118,8 @@ const updateOrderStatus = async (req, res, next) => {
   } catch (error) {
     console.error(`[ORDER ERROR] Failed to update status of Order ${req.params.id} to "${status}": ${error.message}`);
     next(error);
+  } finally {
+    console.log(`[ORDER UPDATE FINALLY] Completed order update attempt for ID: ${req.params.id}`);
   }
 };
 
