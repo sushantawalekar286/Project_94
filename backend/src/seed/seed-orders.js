@@ -6,23 +6,29 @@ require("dotenv").config({ path: "../../.env" });
 
 const seedOrders = async () => {
   const table = await Table.findOne({ number: 1 });
-  const burger = await MenuItem.findOne({ name: "Chicken Burger" });
-  const coke = await MenuItem.findOne({ name: "Coke" });
+  const biryani = await MenuItem.findOne({ name: "Biryani Combo" });
+  const coffee = await MenuItem.findOne({ name: "Cold Coffee" });
 
-  if (!table || !burger || !coke) {
+  if (!table || !biryani || !coffee) {
     console.log("⚠️ Skipping orders seed: Missing dependencies.");
     return;
   }
 
-  // Clear existing to avoid clutter during repeated seeds
-  await Order.deleteMany({});
+  const orderCount = await Order.countDocuments();
+  if (orderCount > 0) {
+    console.log("⏭️  Orders collection is not empty, skipping orders seeding");
+    return;
+  }
+
+  const biryaniPrice = biryani.pricingType === "half-full" ? biryani.halfPrice : biryani.singlePrice || biryani.price;
+  const coffeePrice = coffee.singlePrice || coffee.price;
 
   const items = [
-    { menuItem: burger._id, name: burger.name, price: burger.price, quantity: 2 },
-    { menuItem: coke._id, name: coke.name, price: coke.price, quantity: 2 }
+    { menuItem: biryani._id, name: biryani.name, price: biryaniPrice, quantity: 2, portionType: "half" },
+    { menuItem: coffee._id, name: coffee.name, price: coffeePrice, quantity: 2, portionType: "single" }
   ];
 
-  const subtotal = (burger.price * 2) + (coke.price * 2);
+  const subtotal = (biryaniPrice * 2) + (coffeePrice * 2);
   const tax = Number((subtotal * 0.08).toFixed(2));
   const total = subtotal + tax;
 

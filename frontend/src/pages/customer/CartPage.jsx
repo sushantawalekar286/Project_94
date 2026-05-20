@@ -17,6 +17,7 @@ export default function CartPage() {
   const checkout = async () => {
     if (!items.length) return toast.error("Your cart is empty");
     if (!tableSession?.tableNumber) return toast.error("Please scan your table QR code before placing an order.");
+    console.log("[LOADING STATE] CartPage placing: true");
     setPlacing(true);
     try {
       const res = await placeOrder({
@@ -29,6 +30,7 @@ export default function CartPage() {
     } catch (error) {
       toast.error(error.response?.data?.message || "Unable to place order");
     } finally {
+      console.log("[LOADING STATE] CartPage placing: false");
       setPlacing(false);
     }
   };

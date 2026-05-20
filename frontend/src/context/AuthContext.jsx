@@ -23,6 +23,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const syncFromStorage = () => {
+      console.log("[LOADING STATE] Syncing auth credentials from storage/event...");
       setToken(localStorage.getItem("token") || "");
       setRefreshToken(localStorage.getItem("refreshToken") || "");
       const raw = localStorage.getItem("user");
@@ -38,7 +39,11 @@ export function AuthProvider({ children }) {
     };
 
     window.addEventListener("storage", syncFromStorage);
-    return () => window.removeEventListener("storage", syncFromStorage);
+    window.addEventListener("auth-update", syncFromStorage);
+    return () => {
+      window.removeEventListener("storage", syncFromStorage);
+      window.removeEventListener("auth-update", syncFromStorage);
+    };
   }, []);
 
   useEffect(() => {
@@ -68,6 +73,7 @@ export function AuthProvider({ children }) {
   }, [token, refreshToken, loading]);
 
   const login = (payload) => {
+    console.log("[LOADING STATE] LoginPage: Logging in user:", payload.user?.email);
     setUser(payload.user);
     setToken(payload.token);
     setRefreshToken(payload.refreshToken || "");
@@ -77,6 +83,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    console.log("[LOADING STATE] Logging out user and clearing credentials");
     setUser(null);
     setToken("");
     setRefreshToken("");

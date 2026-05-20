@@ -13,14 +13,25 @@ export default function ChefDashboard() {
   const { logout } = useAuth();
 
   const refresh = async () => {
-    const res = await getOrders();
-    setOrders(res.data.filter((order) => order.status !== "Cancelled"));
-    setLoading(false);
+    console.log("[LOADING STATE] ChefDashboard loading: true");
+    setLoading(true);
+    try {
+      const res = await getOrders();
+      setOrders(res.data.filter((order) => order.status !== "Cancelled"));
+    } catch (error) {
+      console.error("[ChefDashboard] getOrders error:", error);
+      toast.error("Failed to load orders");
+    } finally {
+      console.log("[LOADING STATE] ChefDashboard loading: false");
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     refresh().catch(() => setLoading(false));
-    const timer = setInterval(() => refresh().catch(() => {}), 15000);
+    const timer = setInterval(() => getOrders().then(res => {
+      setOrders(res.data.filter((order) => order.status !== "Cancelled"));
+    }).catch(() => {}), 15000);
     return () => clearInterval(timer);
   }, []);
 
@@ -53,9 +64,14 @@ export default function ChefDashboard() {
   }), [orders]);
 
   const changeStatus = async (id, status) => {
-    await updateOrderStatus(id, status);
-    toast.success(`Order marked ${status}`);
-    refresh();
+    try {
+      await updateOrderStatus(id, status);
+      toast.success(`Order marked ${status}`);
+      await refresh();
+    } catch (error) {
+      console.error("[ChefDashboard] updateOrderStatus error:", error);
+      toast.error(error.response?.data?.message || "Failed to update status");
+    }
   };
 
   return (

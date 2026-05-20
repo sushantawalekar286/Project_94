@@ -15,6 +15,7 @@ export default function LoginPage() {
 
   const submit = async (event) => {
     event.preventDefault();
+    console.log("[LOADING STATE] LoginPage loading: true");
     setLoading(true);
     try {
       const res = await loginRequest({ email, password });
@@ -29,6 +30,7 @@ export default function LoginPage() {
     } catch (error) {
       toast.error(error.response?.data?.message || "Login failed");
     } finally {
+      console.log("[LOADING STATE] LoginPage loading: false");
       setLoading(false);
     }
   };

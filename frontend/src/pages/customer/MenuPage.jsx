@@ -43,11 +43,16 @@ export default function MenuPage() {
   const navigate = useNavigate();
   const { addItem, items: cartItems, tableSession, setTableSession } = useCart();
 
+  const tableParam = params.get("table");
+  const tokenParam = params.get("token");
+  const qrIdParam = params.get("qrId");
+  const scannerIdParam = params.get("scannerId");
+
   useEffect(() => {
-    const routeTableNumber = Number(tableId || params.get("table") || tableSession.tableNumber || 1);
-    const token = params.get("token") || tableSession.token || "";
-    const qrId = params.get("qrId") || tableSession.qrId || "";
-    const scannerId = params.get("scannerId") || tableSession.scannerId || "";
+    const routeTableNumber = Number(tableId || tableParam || tableSession.tableNumber || 1);
+    const token = tokenParam || tableSession.token || "";
+    const qrId = qrIdParam || tableSession.qrId || "";
+    const scannerId = scannerIdParam || tableSession.scannerId || "";
 
     if (!Number.isInteger(routeTableNumber) || routeTableNumber < 1) {
       toast.error("Invalid table QR code");
@@ -55,10 +60,16 @@ export default function MenuPage() {
       return;
     }
 
-    console.log("Scanned Table:", routeTableNumber);
-
-    setTableSession({ tableNumber: routeTableNumber, token, qrId, scannerId });
-  }, [tableId, params, navigate, setTableSession, tableSession.tableNumber, tableSession.token, tableSession.qrId, tableSession.scannerId]);
+    if (
+      routeTableNumber !== tableSession.tableNumber ||
+      token !== tableSession.token ||
+      qrId !== tableSession.qrId ||
+      scannerId !== tableSession.scannerId
+    ) {
+      console.log("[LOADING STATE] Updating table session to Table:", routeTableNumber);
+      setTableSession({ tableNumber: routeTableNumber, token, qrId, scannerId });
+    }
+  }, [tableId, tableParam, tokenParam, qrIdParam, scannerIdParam, navigate, setTableSession, tableSession.tableNumber, tableSession.token, tableSession.qrId, tableSession.scannerId]);
 
   useEffect(() => {
     getMenu()

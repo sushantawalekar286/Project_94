@@ -7,6 +7,17 @@ const connectDB = async (uri) => {
   
   try {
     console.log("🔄 Connecting to MongoDB...");
+
+    mongoose.connection.on("error", (err) => {
+      console.error(`[MONGO ERROR] Connection error: ${err.message}`);
+    });
+    mongoose.connection.on("disconnected", () => {
+      console.warn("[MONGO WARN] Connection disconnected");
+    });
+    mongoose.connection.on("reconnected", () => {
+      console.log("[MONGO INFO] Connection reconnected");
+    });
+
     const connection = await mongoose.connect(uri, {
       retryWrites: true,
       w: "majority",

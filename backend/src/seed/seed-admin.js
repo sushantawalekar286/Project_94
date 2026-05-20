@@ -17,7 +17,14 @@ const seedAdmin = async () => {
     { name: "Chef", email: "chef@restaurant.com", password: passwordChef, role: "chef" },
     { upsert: true, new: true }
   );
-  console.log("✅ Admin & Chef seeded successfully.");
+
+  const passwordWaiter = await bcrypt.hash("waiter123", 10);
+  await User.findOneAndUpdate(
+    { email: "waiter@restaurant.com" },
+    { name: "Waiter", email: "waiter@restaurant.com", password: passwordWaiter, role: "waiter" },
+    { upsert: true, new: true }
+  );
+  console.log("✅ Admin, Chef, and Waiter seeded successfully.");
 };
 
 if (require.main === module) {

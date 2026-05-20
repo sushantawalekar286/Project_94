@@ -18,6 +18,7 @@ const registerUser = async ({ name, email, password, role }, jwtSecret, adminId 
     password: hashed, 
     role: role || "chef"
   });
+  console.log(`[MONGO SAVE] Successfully registered new user: ${user.email} (Role: ${user.role}, ID: ${user._id})`);
   
   return { 
     user: {
@@ -39,11 +40,12 @@ const loginUser = async ({ email, password }, jwtSecret) => {
   const ok = await bcrypt.compare(password, user.password);
   if (!ok) throw Object.assign(new Error("Invalid credentials"), { statusCode: 401 });
 
-  // Create refresh token and persist its hash
-  const refreshToken = crypto.randomBytes(64).toString('hex');
-  const refreshHash = await bcrypt.hash(refreshToken, 10);
+  // Create refresh token as a JWT and persist its SHA-256 hash (fast DB lookup)
+  const refreshToken = generateToken({ id: user._id }, jwtSecret, '30d');
+  const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
   user.refreshTokenHash = refreshHash;
   await user.save();
+  console.log(`[MONGO SAVE] Saved user: ${user.email} (ID: ${user._id}) successfully after updating refresh token hash.`);
 
   return { 
     user: {

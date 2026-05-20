@@ -22,7 +22,11 @@ export default function AdminDashboard() {
   const refreshOrders = () => getOrders().then((res) => {
     const arrayData = res.data?.data || res.data || [];
     setOrders(Array.isArray(arrayData) ? arrayData : []);
-  }).catch(() => setOrders([]));
+  }).catch((err) => {
+    console.error("[AdminDashboard] Error refreshing orders:", err);
+    setOrders([]);
+    throw err;
+  });
 
   const refreshStats = () => getDashboardStats().then((res) => {
     const statsData = res.data?.data || res.data || {};
@@ -32,7 +36,10 @@ export default function AdminDashboard() {
       lowStockCount: statsData.lowStockCount || 0,
       timeline: statsData.timeline || []
     });
-  }).catch(() => {});
+  }).catch((err) => {
+    console.error("[AdminDashboard] Error refreshing stats:", err);
+    throw err;
+  });
 
   const refreshExpenses = () => getExpenseSummary().then((res) => {
     const d = res.data || {};
@@ -42,14 +49,25 @@ export default function AdminDashboard() {
       weekTotal: d.weekTotal || 0,
       monthlySeries: d.monthlySeries || []
     });
-  }).catch(() => setExpenseSummary({ monthTotal: 0, todayTotal: 0, weekTotal: 0, monthlySeries: [] }));
+  }).catch((err) => {
+    console.error("[AdminDashboard] Error refreshing expenses:", err);
+    setExpenseSummary({ monthTotal: 0, todayTotal: 0, weekTotal: 0, monthlySeries: [] });
+    throw err;
+  });
 
   useEffect(() => {
+    console.log("[LOADING STATE] AdminDashboard loading: true");
     setLoading(true);
     Promise.all([refreshOrders(), refreshStats(), refreshExpenses()])
       .then(() => setError(false))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        console.error("[AdminDashboard] Mount data fetch failed:", err.message);
+        setError(true);
+      })
+      .finally(() => {
+        console.log("[LOADING STATE] AdminDashboard loading: false");
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -58,21 +76,21 @@ export default function AdminDashboard() {
     
     const handleNewOrder = () => {
       toast.success("New order received");
-      refreshOrders();
-      refreshStats();
-      refreshExpenses();
+      refreshOrders().catch(() => {});
+      refreshStats().catch(() => {});
+      refreshExpenses().catch(() => {});
     };
     
     const handleOrderUpdate = () => {
-      refreshOrders();
-      refreshStats();
-      refreshExpenses();
+      refreshOrders().catch(() => {});
+      refreshStats().catch(() => {});
+      refreshExpenses().catch(() => {});
     };
     
     const handleExpenseCreated = () => {
       toast.success("New expense recorded");
-      refreshExpenses();
-      refreshStats();
+      refreshExpenses().catch(() => {});
+      refreshStats().catch(() => {});
     };
 
     socket.on("order:new", handleNewOrder);

@@ -1,3 +1,5 @@
 [
-  { "name": "Admin", "email": "admin@restaurant.com", "role": "admin" }
+  { "name": "Admin", "email": "admin@restaurant.com", "role": "admin" },
+  { "name": "Chef", "email": "chef@restaurant.com", "role": "chef" },
+  { "name": "Waiter", "email": "waiter@restaurant.com", "role": "waiter" }
 ]

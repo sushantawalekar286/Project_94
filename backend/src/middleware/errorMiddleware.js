@@ -30,6 +30,11 @@ const errorMiddleware = (err, req, res, next) => {
     message = err.details.map(d => d.message).join(", ");
   }
 
+  console.error(`[API ERROR] ${req.method} ${req.originalUrl} - Status ${statusCode} - ${message}`);
+  if (statusCode === 500) {
+    console.error(err.stack);
+  }
+
   res.status(statusCode).json({
     success: false,
     message,

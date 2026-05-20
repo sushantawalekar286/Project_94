@@ -1,4 +1,7 @@
 [
   { "name": "Cheese", "unit": "kg", "stock": 20 },
-  { "name": "Flour", "unit": "kg", "stock": 30 }
+  { "name": "Flour", "unit": "kg", "stock": 30 },
+  { "name": "Milk", "unit": "ltr", "stock": 40 },
+  { "name": "Oil", "unit": "ltr", "stock": 25 },
+  { "name": "Coffee Powder", "unit": "kg", "stock": 10 }
 ]

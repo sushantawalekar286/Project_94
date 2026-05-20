@@ -9,7 +9,8 @@ const orderSchema = Joi.object({
     .items(
       Joi.object({
         menuItem: Joi.string().required(),
-        quantity: Joi.number().integer().min(1).max(99).required()
+        quantity: Joi.number().integer().min(1).max(99).required(),
+        portionType: Joi.string().valid("single", "half", "full").optional()
       })
     )
     .min(1)

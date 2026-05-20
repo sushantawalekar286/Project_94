@@ -4,27 +4,17 @@ const MenuItem = require("../models/MenuItem");
 // Inventory and Recipe removed — seed only menu items and categories
 require("dotenv").config({ path: "../../.env" });
 
-const categoriesData = ["Burgers", "Pizza", "Drinks", "Desserts", "Coffee"];
+const categoriesData = ["Appetizers", "Soups", "Curries", "Biryanis", "Breads", "Tandoori", "Vegetarian", "Seafood", "Desserts", "Beverages"];
 
 const menuData = [
-  { name: "Chicken Burger", category: "Burgers", price: 249, description: "Juicy chicken patty with cheese", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500" },
-  { name: "Veg Burger", category: "Burgers", price: 199, description: "Crispy veg patty with fresh lettuce", image: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=500" },
-  { name: "Margherita Pizza", category: "Pizza", price: 299, description: "Classic tomato sauce and mozzarella", image: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=500" },
-  { name: "Cold Coffee", category: "Coffee", price: 149, description: "Chilled blended coffee with milk", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=500" },
-  { name: "Cappuccino", category: "Coffee", price: 129, description: "Hot espresso with steamed milk foam", image: "https://images.unsplash.com/photo-1534687941688-129f95d8869c?w=500" },
-  { name: "Coke", category: "Drinks", price: 99, description: "Chilled Coca-Cola", image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500" },
-  { name: "Brownie", category: "Desserts", price: 179, description: "Warm chocolate brownie with ice cream", image: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=500" }
+  { name: "Samosa", category: "Appetizers", pricingType: "single", singlePrice: 80, description: "Crispy fried pastry with potato filling", image: "https://images.unsplash.com/photo-1625757818487-88d1b6b8d1d4?w=500" },
+  { name: "Paneer Butter Masala", category: "Curries", pricingType: "single", singlePrice: 280, description: "Creamy tomato gravy with cottage cheese", image: "https://images.unsplash.com/photo-1589308078054-832d7c1320a8?w=500" },
+  { name: "Biryani Combo", category: "Biryanis", pricingType: "half-full", halfPrice: 180, fullPrice: 299, description: "Flexible half or full serving", image: "https://images.unsplash.com/photo-1563379091339-03246963d6b5?w=500" },
+  { name: "Garlic Naan", category: "Breads", pricingType: "single", singlePrice: 80, description: "Soft naan brushed with garlic butter", image: "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=500" },
+  { name: "Tandoori Paneer", category: "Tandoori", pricingType: "half-full", halfPrice: 210, fullPrice: 340, description: "Paneer cubes marinated and grilled", image: "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500" },
+  { name: "Cold Coffee", category: "Beverages", pricingType: "single", singlePrice: 149, description: "Chilled blended coffee with milk", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=500" },
+  { name: "Gulab Jamun", category: "Desserts", pricingType: "single", singlePrice: 100, description: "Milk solids in sugar syrup", image: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=500" }
 ];
-
-const recipeData = {
-  "Chicken Burger": [{ name: "Bread", qty: 2 }, { name: "Cheese", qty: 1 }, { name: "Patty", qty: 1 }, { name: "Sauce", qty: 20 }],
-  "Veg Burger": [{ name: "Bread", qty: 2 }, { name: "Cheese", qty: 1 }, { name: "Patty", qty: 1 }, { name: "Sauce", qty: 20 }],
-  "Margherita Pizza": [{ name: "Pizza Base", qty: 1 }, { name: "Cheese", qty: 3 }, { name: "Sauce", qty: 50 }],
-  "Cold Coffee": [{ name: "Coffee Powder", qty: 15 }, { name: "Milk", qty: 250 }, { name: "Sugar", qty: 20 }, { name: "Ice Cream", qty: 1 }],
-  "Cappuccino": [{ name: "Coffee Powder", qty: 15 }, { name: "Milk", qty: 150 }, { name: "Sugar", qty: 10 }],
-  "Coke": [{ name: "Coke", qty: 330 }],
-  "Brownie": [{ name: "Ice Cream", qty: 1 }] // (Assuming brownie base is pre-made)
-};
 
 const seedMenu = async () => {
   // Categories
@@ -45,17 +35,22 @@ const seedMenu = async () => {
       { 
         name: item.name, 
         category: categoryMap[item.category], 
-        price: item.price, 
+        pricingType: item.pricingType || "single",
+        price: item.pricingType === "half-full" ? item.fullPrice : item.singlePrice,
+        singlePrice: item.singlePrice ?? item.fullPrice ?? item.price,
+        halfPrice: item.halfPrice ?? null,
+        fullPrice: item.fullPrice ?? item.singlePrice ?? item.price,
         description: item.description, 
         imageUrl: item.image,
-        isAvailable: true 
+        isAvailable: true,
+        available: true
       },
       { upsert: true, new: true }
     );
 
     // No recipe/inventory seeding — menu items are standalone now
   }
-  console.log("✅ Categories, Menu Items, and Recipes seeded successfully.");
+  console.log("✅ Categories and menu items seeded successfully.");
 };
 
 if (require.main === module) {

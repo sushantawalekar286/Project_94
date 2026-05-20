@@ -3,17 +3,19 @@ const env = require('../config/env');
 
 const register = async (req, res, next) => {
   try {
-    // Only admin can register new users
+    console.log(`[AUTH REQUEST] Admin ${req.user?.id} is registering new user with email: ${req.body.email}`);
     const adminId = req.user?.id;
-    const result = await registerUser(req.body, process.env.JWT_SECRET, adminId);
+    const result = await registerUser(req.body, env.JWT_SECRET, adminId);
     res.status(201).json({ success: true, ...result });
   } catch (error) {
+    console.error(`[AUTH ERROR] Registration failed for ${req.body.email || "unknown"}: ${error.message}`);
     next(error);
   }
 };
 
 const login = async (req, res, next) => {
   try {
+    console.log(`[AUTH REQUEST] Login request received for email: ${req.body.email}`);
     const result = await loginUser(req.body, env.JWT_SECRET);
 
     // Set refresh token as httpOnly secure cookie
@@ -27,8 +29,10 @@ const login = async (req, res, next) => {
       // Don't leak refreshToken in long-term logs but return for dev clients
     }
 
+    console.log(`[AUTH REQUEST] Login successful for email: ${req.body.email} (Role: ${result.user?.role})`);
     res.json({ success: true, user: result.user, token: result.token, refreshToken: result.refreshToken });
   } catch (error) {
+    console.error(`[AUTH ERROR] Login failed for email ${req.body.email || "unknown"}: ${error.message}`);
     next(error);
   }
 };

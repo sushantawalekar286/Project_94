@@ -1,6 +1,12 @@
 [
-  { "name": "Pizza", "description": "Pizza items" },
-  { "name": "Burgers", "description": "Burger items" },
-  { "name": "Fries", "description": "Fries items" },
-  { "name": "Beverages", "description": "Drinks" }
+  { "name": "Appetizers", "description": "Starters and quick bites" },
+  { "name": "Soups", "description": "Hot and comforting soups" },
+  { "name": "Curries", "description": "Classic curries and gravies" },
+  { "name": "Biryanis", "description": "Fragrant rice specialties" },
+  { "name": "Breads", "description": "Fresh breads and accompaniments" },
+  { "name": "Tandoori", "description": "Clay oven grilled dishes" },
+  { "name": "Vegetarian", "description": "Veg mains and stir-fries" },
+  { "name": "Seafood", "description": "Fresh seafood dishes" },
+  { "name": "Desserts", "description": "Sweet treats and puddings" },
+  { "name": "Beverages", "description": "Tea, coffee and coolers" }
 ]

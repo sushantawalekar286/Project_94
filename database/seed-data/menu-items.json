@@ -1,4 +1,82 @@
 [
-  { "name": "Margherita Pizza", "description": "Classic cheese pizza", "price": 8.99 },
-  { "name": "Veg Burger", "description": "Loaded veggie burger", "price": 5.99 }
+  {
+    "name": "Paneer Butter Masala",
+    "description": "Creamy tomato gravy with cottage cheese",
+    "category": "Curries",
+    "imageUrl": "https://images.unsplash.com/photo-1589308078054-832d7c1320a8?auto=format&fit=crop&w=900&q=80",
+    "pricingType": "single",
+    "singlePrice": 280,
+    "available": true,
+    "preparationTime": 20,
+    "spiceLevel": 2,
+    "vegetarian": true,
+    "vegan": false
+  },
+  {
+    "name": "Chicken Tikka Masala",
+    "description": "Tender chicken in a rich masala sauce",
+    "category": "Curries",
+    "imageUrl": "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=900&q=80",
+    "pricingType": "single",
+    "singlePrice": 320,
+    "available": true,
+    "preparationTime": 22,
+    "spiceLevel": 3,
+    "vegetarian": false,
+    "vegan": false
+  },
+  {
+    "name": "Biryani Combo",
+    "description": "Half and full plate biryani for flexible ordering",
+    "category": "Biryanis",
+    "imageUrl": "https://images.unsplash.com/photo-1563379091339-03246963d6b5?auto=format&fit=crop&w=900&q=80",
+    "pricingType": "half-full",
+    "halfPrice": 180,
+    "fullPrice": 299,
+    "available": true,
+    "preparationTime": 30,
+    "spiceLevel": 2,
+    "vegetarian": false,
+    "vegan": false
+  },
+  {
+    "name": "Garlic Naan",
+    "description": "Soft naan brushed with garlic butter",
+    "category": "Breads",
+    "imageUrl": "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?auto=format&fit=crop&w=900&q=80",
+    "pricingType": "single",
+    "singlePrice": 80,
+    "available": true,
+    "preparationTime": 8,
+    "spiceLevel": 0,
+    "vegetarian": true,
+    "vegan": false
+  },
+  {
+    "name": "Tandoori Paneer",
+    "description": "Paneer cubes marinated and grilled in tandoor",
+    "category": "Tandoori",
+    "imageUrl": "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?auto=format&fit=crop&w=900&q=80",
+    "pricingType": "half-full",
+    "halfPrice": 210,
+    "fullPrice": 340,
+    "available": true,
+    "preparationTime": 18,
+    "spiceLevel": 2,
+    "vegetarian": true,
+    "vegan": false
+  },
+  {
+    "name": "Cold Coffee",
+    "description": "Chilled coffee with milk and ice",
+    "category": "Beverages",
+    "imageUrl": "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=900&q=80",
+    "pricingType": "single",
+    "singlePrice": 149,
+    "available": true,
+    "preparationTime": 5,
+    "spiceLevel": 0,
+    "vegetarian": true,
+    "vegan": false
+  }
 ]

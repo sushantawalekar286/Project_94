@@ -39,6 +39,7 @@ const getOrderById = async (req, res, next) => {
 
 const placeOrder = async (req, res, next) => {
   try {
+    console.log(`[ORDER REQUEST] Place order request received for Table ${req.body.tableNumber || "unknown"}`);
     const order = await createOrder(req.body);
     const io = getIO();
     if (io) {
@@ -47,6 +48,7 @@ const placeOrder = async (req, res, next) => {
     }
     res.status(201).json(order);
   } catch (error) {
+    console.error(`[ORDER ERROR] Failed to place order: ${error.message}`);
     // Propagate stock errors as 400
     if (error.statusCode) res.status(error.statusCode);
     next(error);
@@ -54,8 +56,9 @@ const placeOrder = async (req, res, next) => {
 };
 
 const updateOrderStatus = async (req, res, next) => {
+  const { status } = req.body;
   try {
-    const { status } = req.body;
+    console.log(`[ORDER REQUEST] Request to update status of Order ${req.params.id} to "${status}"`);
 
     // Fetch current order
     const current = await Order.findById(req.params.id);
@@ -63,6 +66,7 @@ const updateOrderStatus = async (req, res, next) => {
 
     // PHASE 5 — Validate transition
     if (!isValidTransition(current.status, status)) {
+      console.warn(`[ORDER ERROR] Invalid transition for Order ${req.params.id}: "${current.status}" -> "${status}"`);
       return res.status(400).json({
         success: false,
         message: `Invalid status transition: "${current.status}" → "${status}"`
@@ -85,6 +89,8 @@ const updateOrderStatus = async (req, res, next) => {
       await completeOrder(order);
     }
 
+    console.log(`[MONGO SAVE] Order ${order._id} status updated successfully from "${current.status}" to "${status}"`);
+
     const io = getIO();
     if (io) {
       io.to("chef").emit("order:updated", order);
@@ -94,6 +100,7 @@ const updateOrderStatus = async (req, res, next) => {
 
     res.json(order);
   } catch (error) {
+    console.error(`[ORDER ERROR] Failed to update status of Order ${req.params.id} to "${status}": ${error.message}`);
     next(error);
   }
 };
