@@ -1,7 +1,10 @@
+require("../utils/dnsHelper");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
-require("dotenv").config({ path: "../../.env" }); // Support running from seed dir
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
+require("dotenv").config({ path: path.resolve(__dirname, "../../../.env") });
 
 const seedAdmin = async () => {
   const passwordAdmin = await bcrypt.hash("admin123", 10);

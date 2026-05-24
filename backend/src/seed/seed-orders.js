@@ -1,8 +1,11 @@
+require("../utils/dnsHelper");
 const mongoose = require("mongoose");
 const Table = require("../models/Table");
 const MenuItem = require("../models/MenuItem");
 const Order = require("../models/Order");
-require("dotenv").config({ path: "../../.env" });
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
+require("dotenv").config({ path: path.resolve(__dirname, "../../../.env") });
 
 const seedOrders = async () => {
   const table = await Table.findOne({ number: 1 });

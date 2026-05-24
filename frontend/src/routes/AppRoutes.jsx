@@ -9,6 +9,7 @@ import CartPage from "../pages/customer/CartPage";
 import OrderSuccessPage from "../pages/customer/OrderSuccessPage";
 import OrderTrackingPage from "../pages/customer/OrderTrackingPage";
 import ChefDashboard from "../pages/chef/ChefDashboard";
+import WaiterDashboard from "../pages/waiter/WaiterDashboard";
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import MenuManagement from "../pages/admin/MenuManagement";
 import ExpensesDashboard from "../pages/admin/ExpensesDashboard";
@@ -29,6 +30,7 @@ export default function AppRoutes() {
       <Route path="/customer/success" element={<CustomerLayout><OrderSuccessPage /></CustomerLayout>} />
       <Route path="/customer/tracking" element={<CustomerLayout><OrderTrackingPage /></CustomerLayout>} />
       <Route path="/chef" element={<ProtectedRoute roles={["chef", "admin"]}><ChefLayout><ChefDashboard /></ChefLayout></ProtectedRoute>} />
+      <Route path="/waiter" element={<ProtectedRoute roles={["waiter", "admin"]}><WaiterDashboard /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
       <Route path="/admin/menu" element={<ProtectedRoute roles={["admin"]}><AdminLayout><MenuManagement /></AdminLayout></ProtectedRoute>} />
       <Route path="/admin/expenses" element={<ProtectedRoute roles={["admin"]}><AdminLayout><ExpensesDashboard /></AdminLayout></ProtectedRoute>} />

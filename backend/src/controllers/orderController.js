@@ -89,20 +89,39 @@ const updateOrderStatus = async (req, res, next) => {
       });
     }
 
+    const updateFields = { status };
+    if (status === "Accepted") {
+      updateFields.acceptedAt = new Date();
+    } else if (status === "Cooking") {
+      updateFields.cookingStartedAt = new Date();
+    } else if (status === "Ready") {
+      updateFields.readyAt = new Date();
+    } else if (status === "Served") {
+      updateFields.servedAt = new Date();
+    } else if (status === "Completed") {
+      updateFields.completedAt = new Date();
+    } else if (status === "Paid") {
+      updateFields.paidAt = new Date();
+      updateFields.completedAt = new Date(); // Treat Paid as Completed for tracking expiry
+      updateFields.paymentStatus = "paid";
+    }
+
     const order = await Order.findByIdAndUpdate(
       req.params.id,
-      { status },
+      updateFields,
       { new: true }
     );
 
-    // Trigger inventory deduction when kitchen starts Preparing
-    if (status === "Preparing" && current.status === "Pending") {
+    // Trigger inventory deduction when kitchen starts Cooking or Accepted
+    if ((status === "Cooking" || status === "Accepted") && current.status === "Pending") {
       await onOrderPreparing(order);
     }
 
-    // Record Sale when order is Completed
-    if (status === "Completed" && current.status !== "Completed") {
+    // Record Sale and free table when order is Completed or Paid
+    if ((status === "Completed" || status === "Paid") && current.status !== "Completed" && current.status !== "Paid") {
       await completeOrder(order);
+      const Table = require("../models/Table");
+      await Table.findByIdAndUpdate(order.table, { activeOrder: null, status: "available" });
     }
 
     console.log(`[MONGO SAVE] Order ${order._id} status updated successfully from "${current.status}" to "${status}"`);
@@ -123,4 +142,34 @@ const updateOrderStatus = async (req, res, next) => {
   }
 };
 
-module.exports = { listOrders, placeOrder, updateOrderStatus, getOrderById };
+const getActiveOrderByTable = async (req, res, next) => {
+  try {
+    const { tableNumber } = req.params;
+    const order = await Order.findOne({ tableNumber: Number(tableNumber) })
+      .sort({ createdAt: -1 })
+      .populate("table", "number token");
+
+    if (!order) {
+      return res.json({ active: false, order: null });
+    }
+
+    let isActive = false;
+    if (order.status !== "Cancelled") {
+      if (order.status !== "Completed" && order.status !== "Paid") {
+        isActive = true;
+      } else {
+        const referenceTime = order.completedAt || order.paidAt || order.updatedAt;
+        const elapsed = Date.now() - new Date(referenceTime).getTime();
+        if (elapsed < 5 * 60 * 1000) {
+          isActive = true;
+        }
+      }
+    }
+
+    res.json({ active: isActive, order: isActive ? order : null });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { listOrders, placeOrder, updateOrderStatus, getOrderById, getActiveOrderByTable };

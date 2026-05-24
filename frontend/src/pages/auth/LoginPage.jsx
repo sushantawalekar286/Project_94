@@ -25,7 +25,9 @@ export default function LoginPage() {
         ? "/admin"
         : res.data.user.role === "chef"
           ? "/chef"
-          : "/scan";
+          : res.data.user.role === "waiter"
+            ? "/waiter"
+            : "/scan";
       navigate(destination, { replace: true });
     } catch (error) {
       toast.error(error.response?.data?.message || "Login failed");
@@ -42,8 +44,10 @@ export default function LoginPage() {
           <FaUserShield />
         </div>
         <h1 className="mt-6 text-4xl font-black">Staff Login</h1>
-        <p className="mt-2 text-white/55">Secure JWT access for Admin and Chef dashboards.</p>
-        <p className="mt-2 text-sm text-white/40">Use your assigned staff credentials. Default demo account: admin@restaurant.com / admin123.</p>
+        <p className="mt-2 text-white/55">Secure JWT access for Admin, Chef, and Waiter dashboards.</p>
+        <p className="mt-2 text-sm text-white/40 font-medium">
+          Demo: <span className="text-gold-400">admin@restaurant.com/admin123</span> | <span className="text-gold-400">chef@restaurant.com/chef123</span> | <span className="text-gold-400">waiter@restaurant.com/waiter123</span>
+        </p>
         <label className="mt-6 block">
           <span className="text-sm text-white/60">Email</span>
           <input className="input-field mt-2" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="name@company.com" />

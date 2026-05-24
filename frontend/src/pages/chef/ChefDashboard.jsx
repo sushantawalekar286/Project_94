@@ -59,8 +59,8 @@ export default function ChefDashboard() {
 
   const metrics = useMemo(() => ({
     pending: orders.filter((order) => order.status === "Pending").length,
-    preparing: orders.filter((order) => order.status === "Preparing").length,
-    completed: orders.filter((order) => order.status === "Completed").length
+    cooking: orders.filter((order) => order.status === "Cooking" || order.status === "Accepted" || order.status === "Ready").length,
+    completed: orders.filter((order) => order.status === "Completed" || order.status === "Paid" || order.status === "Served").length
   }), [orders]);
 
   const changeStatus = async (id, status) => {

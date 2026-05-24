@@ -25,6 +25,10 @@ const getMonthlySales = async (req, res, next) => {
   }
 };
 
+const Sale = require("../models/Sale");
+const Order = require("../models/Order");
+const Table = require("../models/Table");
+
 const getDashboardStats = async (req, res, next) => {
   try {
     const [today, topItems, timeline] = await Promise.all([
@@ -32,7 +36,26 @@ const getDashboardStats = async (req, res, next) => {
       topMenuItems(5),
       revenueTimeline(7)
     ]);
-    res.json({ today, topItems, lowStockCount: 0, timeline });
+
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const monthlyRevenueResult = await Sale.aggregate([
+      { $match: { createdAt: { $gte: startOfMonth } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } }
+    ]);
+    const monthlyRevenue = monthlyRevenueResult[0]?.total || 0;
+
+    const totalOrders = await Order.countDocuments();
+    const activeTables = await Table.countDocuments({ status: "occupied" });
+
+    res.json({ 
+      today, 
+      topItems, 
+      lowStockCount: 0, 
+      timeline,
+      monthlyRevenue,
+      totalOrders,
+      activeTables
+    });
   } catch (error) {
     next(error);
   }

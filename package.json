@@ -6,8 +6,8 @@
     "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
     "server": "cd backend && npm run dev",
     "client": "cd frontend && npm run dev",
-    "seed-admin": "cd backend && node src/seed/seedAdmin.js",
-    "seed-all": "cd backend && node src/seed/seedAdmin.js && node src/seed/seedTables.js && node src/seed/seedMenu.js",
+    "seed-admin": "cd backend && node src/seed/seed-admin.js",
+    "seed-all": "cd backend && node src/seed/seed-all.js",
     "start": "cd backend && npm install && node src/server.js"
   },
   "devDependencies": {

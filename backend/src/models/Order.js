@@ -81,6 +81,10 @@ const orderSchema = new mongoose.Schema(
       type: Date,
       default: null
     },
+    completedAt: { 
+      type: Date,
+      default: null
+    },
     assignedChef: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

@@ -78,6 +78,12 @@ const createOrder = async ({ tableId, tableNumber, token, items }) => {
     tax,
     total
   });
+
+  // Link order to table and mark table as occupied
+  table.activeOrder = order._id;
+  table.status = "occupied";
+  await table.save();
+
   console.log(`[MONGO SAVE] Order created successfully for Table ${order.tableNumber} (Order ID: ${order._id}, Total: ₹${order.total})`);
 
   return order;

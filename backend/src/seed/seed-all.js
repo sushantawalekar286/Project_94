@@ -1,9 +1,12 @@
+require("../utils/dnsHelper");
 const mongoose = require("mongoose");
 const seedAdmin = require("./seed-admin");
 const seedTables = require("./seed-tables");
 const seedMenu = require("./seed-menu");
 const seedOrders = require("./seed-orders");
-require("dotenv").config({ path: "../../.env" });
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
+require("dotenv").config({ path: path.resolve(__dirname, "../../../.env") });
 
 const seedAll = async () => {
   try {

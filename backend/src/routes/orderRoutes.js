@@ -1,11 +1,12 @@
 const router = require("express").Router();
-const { listOrders, placeOrder, updateOrderStatus, getOrderById } = require("../controllers/orderController");
+const { listOrders, placeOrder, updateOrderStatus, getOrderById, getActiveOrderByTable } = require("../controllers/orderController");
 const auth = require("../middleware/authMiddleware");
 const role = require("../middleware/roleMiddleware");
 const validate = require("../middleware/validateMiddleware");
 const { orderSchema, statusSchema } = require("../validators/orderValidator");
 
-// Public — customer places order (authenticated by QR token in body, not JWT)
+// Public — customer queries active order or places one
+router.get("/active/table/:tableNumber", getActiveOrderByTable);
 router.post("/", validate(orderSchema), placeOrder);
 
 // Protected — staff only

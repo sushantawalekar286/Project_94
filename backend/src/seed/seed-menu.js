@@ -1,8 +1,11 @@
+require("../utils/dnsHelper");
 const mongoose = require("mongoose");
 const Category = require("../models/Category");
 const MenuItem = require("../models/MenuItem");
 // Inventory and Recipe removed — seed only menu items and categories
-require("dotenv").config({ path: "../../.env" });
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
+require("dotenv").config({ path: path.resolve(__dirname, "../../../.env") });
 
 const categoriesData = ["Appetizers", "Soups", "Curries", "Biryanis", "Breads", "Tandoori", "Vegetarian", "Seafood", "Desserts", "Beverages"];
 

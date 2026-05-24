@@ -19,7 +19,7 @@ The system comes with pre-configured admin and chef accounts. These are created 
 
 ### Chef Account
 - **Email:** chef@restaurant.com
-- **Password:** admin123
+- **Password:** chef123
 - **Role:** Chef (Kitchen management only)
 - **Permissions:**
   - View Orders (assigned to chef)

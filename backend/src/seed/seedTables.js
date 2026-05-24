@@ -1,3 +1,4 @@
+require("../utils/dnsHelper");
 const dotenv = require("dotenv");
 dotenv.config();
 const mongoose = require("mongoose");

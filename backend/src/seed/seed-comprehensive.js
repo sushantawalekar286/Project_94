@@ -12,6 +12,7 @@
  * - Tables 1-50 with QR codes
  */
 
+require("../utils/dnsHelper");
 const mongoose = require("mongoose");
 const bcryptjs = require("bcryptjs");
 const crypto = require("crypto");

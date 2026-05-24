@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { FaShoppingBag, FaSearch } from "react-icons/fa";
@@ -8,6 +8,7 @@ import { useCart } from "../../hooks/useCart";
 import CategoryList from "../../components/menu/CategoryList";
 import MenuCard from "../../components/menu/MenuCard";
 import Loader from "../../components/common/Loader";
+import { getActiveOrderByTable } from "../../services/orderService";
 
 const fallbackCategories = ["Pizza", "Burgers", "Fries", "Beverages"];
 const fallbackImages = {
@@ -41,6 +42,7 @@ export default function MenuPage() {
   const { tableId } = useParams();
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { addItem, items: cartItems, tableSession, setTableSession } = useCart();
 
   const tableParam = params.get("table");
@@ -77,6 +79,21 @@ export default function MenuPage() {
       .catch(() => setItems(fallbackMenu))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const tableNum = tableId || tableParam || tableSession.tableNumber;
+    if (tableNum && !location.state?.fromTracking) {
+      getActiveOrderByTable(tableNum)
+        .then((res) => {
+          if (res.data?.active && res.data?.order) {
+            navigate("/customer/tracking", { state: { order: res.data.order } });
+          }
+        })
+        .catch((err) => {
+          console.error("Error checking active order:", err);
+        });
+    }
+  }, [tableId, tableParam, tableSession.tableNumber, location.state, navigate]);
 
   const categories = useMemo(() => {
     const names = [...new Set(items.map((item) => item.category?.name).filter(Boolean))];

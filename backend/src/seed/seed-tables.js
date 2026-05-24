@@ -1,8 +1,11 @@
+require("../utils/dnsHelper");
 const mongoose = require("mongoose");
 const crypto = require("crypto");
 const Table = require("../models/Table");
 const { generateForTable } = require("../services/qrService");
-require("dotenv").config({ path: "../../.env" });
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
+require("dotenv").config({ path: path.resolve(__dirname, "../../../.env") });
 
 const seedTables = async () => {
   const clientUrl = process.env.CLIENT_URL;
