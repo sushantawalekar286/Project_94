@@ -25,8 +25,13 @@ export default function CartPage() {
         token: tableSession.token,
         items: items.map(({ menuItem, quantity, portionType }) => ({ menuItem, quantity, portionType }))
       });
+      const orderData = res.data?.order || res.data;
+      if (orderData?._id) {
+        localStorage.setItem("activeOrderId", orderData._id);
+        localStorage.setItem("tableNumber", String(tableSession.tableNumber));
+      }
       clearCart();
-      navigate("/customer/success", { state: { order: res.data?.order || res.data } });
+      navigate("/customer/success", { state: { order: orderData } });
     } catch (error) {
       toast.error(error.response?.data?.message || "Unable to place order");
     } finally {

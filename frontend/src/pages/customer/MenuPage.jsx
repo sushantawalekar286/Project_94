@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import { FaShoppingBag, FaSearch } from "react-icons/fa";
+import { FaShoppingBag, FaSearch, FaConciergeBell, FaUtensils } from "react-icons/fa";
 import { getMenu } from "../../services/menuService";
 import { useCart } from "../../hooks/useCart";
 import CategoryList from "../../components/menu/CategoryList";
 import MenuCard from "../../components/menu/MenuCard";
-import Loader from "../../components/common/Loader";
 import { getActiveOrderByTable } from "../../services/orderService";
 
 const fallbackCategories = ["Pizza", "Burgers", "Fries", "Beverages"];
@@ -34,11 +33,31 @@ const fallbackMenu = fallbackCategories.flatMap((category, categoryIndex) =>
   }))
 );
 
+const MenuSkeleton = () => (
+  <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 animate-pulse">
+    {[...Array(6)].map((_, i) => (
+      <div key={i} className="rounded-3xl border border-white/5 bg-white/[0.02] p-5 h-[380px] flex flex-col justify-between">
+        <div className="h-48 w-full bg-white/5 rounded-2xl" />
+        <div className="space-y-3 mt-4">
+          <div className="h-6 w-3/4 bg-white/10 rounded-lg" />
+          <div className="h-4 w-full bg-white/5 rounded-lg" />
+          <div className="h-4 w-5/6 bg-white/5 rounded-lg" />
+        </div>
+        <div className="flex gap-3 mt-4">
+          <div className="h-10 w-24 bg-white/5 rounded-xl" />
+          <div className="h-10 flex-1 bg-white/10 rounded-xl" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 export default function MenuPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState("Pizza");
+  const [category, setCategory] = useState("All");
   const [search, setSearch] = useState("");
+  const [hasActiveOrder, setHasActiveOrder] = useState(false);
   const { tableId } = useParams();
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -80,13 +99,23 @@ export default function MenuPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Check active order status for the table
   useEffect(() => {
     const tableNum = tableId || tableParam || tableSession.tableNumber;
-    if (tableNum && !location.state?.fromTracking) {
+    if (tableNum) {
       getActiveOrderByTable(tableNum)
         .then((res) => {
           if (res.data?.active && res.data?.order) {
-            navigate("/customer/tracking", { state: { order: res.data.order } });
+            setHasActiveOrder(true);
+            localStorage.setItem("activeOrderId", res.data.order._id);
+            localStorage.setItem("tableNumber", String(tableNum));
+            
+            // Redirect customer if they are not explicitly coming back from the tracking screen
+            if (!location.state?.fromTracking) {
+              navigate("/customer/tracking", { state: { order: res.data.order } });
+            }
+          } else {
+            setHasActiveOrder(false);
           }
         })
         .catch((err) => {
@@ -97,11 +126,12 @@ export default function MenuPage() {
 
   const categories = useMemo(() => {
     const names = [...new Set(items.map((item) => item.category?.name).filter(Boolean))];
-    return (names.length ? names : fallbackCategories).map((name) => ({ name }));
+    const baseCategories = names.length ? names : fallbackCategories;
+    return [{ name: "All" }, ...baseCategories.map((name) => ({ name }))];
   }, [items]);
 
   const filtered = items.filter((item) => {
-    const matchesCategory = item.category?.name === category;
+    const matchesCategory = category === "All" || item.category?.name === category;
     const matchesSearch = `${item.name} ${item.description}`.toLowerCase().includes(search.toLowerCase());
     return matchesCategory && matchesSearch;
   });
@@ -143,33 +173,76 @@ export default function MenuPage() {
           </div>
         </header>
 
-        <CategoryList categories={categories} active={category} onSelect={setCategory} />
+        <div className="mt-6">
+          <CategoryList categories={categories} active={category} onSelect={setCategory} />
+        </div>
 
         {loading ? (
-          <Loader label="Preparing the menu" />
+          <MenuSkeleton />
         ) : (
           <motion.div layout className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((item, index) => (
-              <MenuCard
-                key={item._id}
-                item={item}
-                index={index}
-                onAdd={(selected, quantity, portionType, price) => {
-                  addItem({
-                    menuItem: selected._id,
-                    name: selected.name,
-                    price,
-                    quantity,
-                    imageUrl: selected.imageUrl,
-                    portionType
-                  });
-                  toast.success(`${selected.name} added to cart`);
-                }}
-              />
-            ))}
+            {filtered.length === 0 ? (
+              <div className="col-span-full py-16 text-center text-white/45 bg-white/[0.02] rounded-3xl border border-dashed border-white/10 p-10 max-w-md mx-auto mt-6">
+                <FaUtensils className="mx-auto text-4xl text-white/30 mb-3" />
+                <p className="font-bold text-white">No items found</p>
+                <p className="text-xs text-white/40 mt-1">We couldn't find any dishes matching "{search}" or under category "{category}".</p>
+              </div>
+            ) : (
+              filtered.map((item, index) => (
+                <MenuCard
+                  key={item._id}
+                  item={item}
+                  index={index}
+                  onAdd={(selected, quantity, portionType, price) => {
+                    addItem({
+                      menuItem: selected._id,
+                      name: selected.name,
+                      price,
+                      quantity,
+                      imageUrl: selected.imageUrl,
+                      portionType
+                    });
+                    toast.success(`${selected.name} added to cart`);
+                  }}
+                />
+              ))
+            )}
           </motion.div>
         )}
       </div>
+
+      {/* Sticky Bottom Actions Container */}
+      <AnimatePresence>
+        {(cartItems.length > 0 || hasActiveOrder) && (
+          <motion.div 
+            initial={{ y: 100, x: "-50%", opacity: 0 }}
+            animate={{ y: 0, x: "-50%", opacity: 1 }}
+            exit={{ y: 100, x: "-50%", opacity: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            className="fixed bottom-6 left-1/2 z-50 flex gap-4 w-[calc(100%-2rem)] max-w-md"
+          >
+            {cartItems.length > 0 && (
+              <button
+                onClick={() => navigate(`/customer/cart?table=${tableSession.tableNumber}`)}
+                className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary-600 to-gold-500 py-4 font-black text-white shadow-glow text-sm transition-transform active:scale-95"
+              >
+                <FaShoppingBag />
+                <span>View Cart ({cartItems.length})</span>
+              </button>
+            )}
+
+            {hasActiveOrder && (
+              <button
+                onClick={() => navigate("/customer/tracking")}
+                className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-neutral-900 border border-white/10 hover:bg-neutral-800 py-4 font-black text-gold-400 shadow-xl text-sm transition-transform active:scale-95"
+              >
+                <FaConciergeBell className="animate-pulse" />
+                <span>Track Order</span>
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

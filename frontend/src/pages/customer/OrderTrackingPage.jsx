@@ -45,13 +45,16 @@ export default function OrderTrackingPage() {
 
   // Re-fetch latest active order on reload or mount
   useEffect(() => {
-    const tableNum = tableSession.tableNumber || 1;
+    const storedTableNum = localStorage.getItem("tableNumber");
+    const tableNum = tableSession.tableNumber || Number(storedTableNum) || 1;
     if (!order) {
       setLoading(true);
       getActiveOrderByTable(tableNum)
         .then((res) => {
           if (res.data?.active && res.data?.order) {
             setOrder(res.data.order);
+            localStorage.setItem("activeOrderId", res.data.order._id);
+            localStorage.setItem("tableNumber", String(tableNum));
           } else {
             setOrder(null);
           }
@@ -122,7 +125,7 @@ export default function OrderTrackingPage() {
         <div className="relative text-center max-w-md p-6 border border-white/10 bg-white/5 rounded-3xl backdrop-blur-md">
           <FaConciergeBell className="mx-auto text-5xl text-gold-400 mb-4" />
           <h2 className="text-2xl font-black">No Active Order</h2>
-          <p className="mt-2 text-white/60">We couldn't find any active orders for Table {tableSession.tableNumber}. Scan your table QR code to view our menu and place an order.</p>
+          <p className="mt-2 text-white/60">We couldn't find any active orders for Table {tableSession.tableNumber || localStorage.getItem("tableNumber") || 1}. Scan your table QR code to view our menu and place an order.</p>
           <Link className="btn-primary mt-6 inline-flex" to="/customer/menu">Go to Menu</Link>
         </div>
       </section>
