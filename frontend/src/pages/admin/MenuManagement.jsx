@@ -1,7 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import toast from "react-hot-toast";
-import { FaPen, FaPlus, FaTrash } from "react-icons/fa";
-import { createCategory, createMenuItem, deleteMenuItem, getCategories, getMenu, updateMenuItem, updateMenuItemAvailability } from "../../services/menuService";
+import { 
+  FaPen, 
+  FaPlus, 
+  FaTrash, 
+  FaSearch, 
+  FaSort, 
+  FaSortUp, 
+  FaSortDown, 
+  FaChevronDown, 
+  FaChevronUp, 
+  FaFolder, 
+  FaUtensils, 
+  FaCheckCircle, 
+  FaTimesCircle,
+  FaTable,
+  FaFolderOpen
+} from "react-icons/fa";
+import { 
+  createCategory, 
+  createMenuItem, 
+  deleteMenuItem, 
+  getCategories, 
+  getMenu, 
+  updateMenuItem, 
+  updateMenuItemAvailability 
+} from "../../services/menuService";
 import Button from "../../components/common/Button";
 
 const emptyForm = {
@@ -21,7 +45,19 @@ export default function MenuManagement() {
   const [form, setForm] = useState(emptyForm);
   const [newCategory, setNewCategory] = useState("");
   const [editingId, setEditingId] = useState(null);
+  
+  // Filters & Search
   const [filterMode, setFilterMode] = useState("all"); // "all", "available", "unavailable"
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Views & Table states
+  const [viewMode, setViewMode] = useState("table"); // "table" or "category"
+  const [collapsedCategories, setCollapsedCategories] = useState({});
+  const [sortBy, setSortBy] = useState("name");
+  const [sortOrder, setSortOrder] = useState("asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(8);
 
   const refresh = () => {
     getMenu()
@@ -43,6 +79,11 @@ export default function MenuManagement() {
   useEffect(() => {
     refresh();
   }, []);
+
+  // Reset pagination on filter or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategoryFilter, filterMode]);
 
   const startEdit = (item) => {
     setEditingId(item._id);
@@ -90,7 +131,6 @@ export default function MenuManagement() {
       };
 
       if (editingId) {
-        // preserve the existing availability state of the item when updating other details
         const existingItem = items.find(item => item._id === editingId);
         if (existingItem) {
           payload.available = existingItem.available ?? existingItem.isAvailable ?? true;
@@ -122,88 +162,333 @@ export default function MenuManagement() {
     }
   };
 
-  const filteredItems = items.filter((item) => {
-    const isAvail = item.available ?? item.isAvailable ?? true;
-    if (filterMode === "available") return isAvail === true;
-    if (filterMode === "unavailable") return isAvail === false;
-    return true;
-  });
+  const handleDeleteItem = async (id) => {
+    if (window.confirm("Are you sure you want to delete this menu item?")) {
+      try {
+        await deleteMenuItem(id);
+        toast.success("Menu item deleted");
+        refresh();
+      } catch {
+        toast.error("Failed to delete menu item");
+      }
+    }
+  };
+
+  // Sort & filter logic
+  const filteredAndSortedItems = useMemo(() => {
+    let result = [...items];
+
+    // 1. Search Query (Name, Category, Product Code)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(item => {
+        const code = item.code || `T-${item._id?.substring(item._id.length - 6).toUpperCase()}`;
+        return (
+          item.name?.toLowerCase().includes(query) ||
+          item.category?.name?.toLowerCase().includes(query) ||
+          code.toLowerCase().includes(query)
+        );
+      });
+    }
+
+    // 2. Category Dropdown Filter
+    if (selectedCategoryFilter !== "all") {
+      result = result.filter(item => {
+        const catId = item.category?._id || item.category;
+        return catId === selectedCategoryFilter;
+      });
+    }
+
+    // 3. Status Filter (All, Available, Unavailable)
+    if (filterMode === "available") {
+      result = result.filter(item => (item.available ?? item.isAvailable ?? true) === true);
+    } else if (filterMode === "unavailable") {
+      result = result.filter(item => (item.available ?? item.isAvailable ?? true) === false);
+    }
+
+    // 4. Sort Items
+    result.sort((a, b) => {
+      let valA = "";
+      let valB = "";
+
+      if (sortBy === "name") {
+        valA = a.name?.toLowerCase() || "";
+        valB = b.name?.toLowerCase() || "";
+      } else if (sortBy === "category") {
+        valA = a.category?.name?.toLowerCase() || "";
+        valB = b.category?.name?.toLowerCase() || "";
+      } else if (sortBy === "price") {
+        valA = a.pricingType === "half-full" ? (a.fullPrice ?? a.price ?? 0) : (a.singlePrice ?? a.price ?? 0);
+        valB = b.pricingType === "half-full" ? (b.fullPrice ?? b.price ?? 0) : (b.singlePrice ?? b.price ?? 0);
+      }
+
+      if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+      if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [items, searchQuery, selectedCategoryFilter, filterMode, sortBy, sortOrder]);
+
+  // Statistics Dashboard details
+  const stats = useMemo(() => {
+    const totalCats = categories.length;
+    const totalProds = items.length;
+    const active = items.filter(i => i.available ?? i.isAvailable ?? true).length;
+    const inactive = totalProds - active;
+    return { totalCats, totalProds, active, inactive };
+  }, [items, categories]);
+
+  // Category-wise grouped products
+  const groupedItems = useMemo(() => {
+    const groups = {};
+    filteredAndSortedItems.forEach(item => {
+      const catName = item.category?.name || "Uncategorized";
+      if (!groups[catName]) groups[catName] = [];
+      groups[catName].push(item);
+    });
+    return groups;
+  }, [filteredAndSortedItems]);
+
+  // Pagination details
+  const paginatedItems = useMemo(() => {
+    const startIdx = (currentPage - 1) * itemsPerPage;
+    return filteredAndSortedItems.slice(startIdx, startIdx + itemsPerPage);
+  }, [filteredAndSortedItems, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredAndSortedItems.length / itemsPerPage) || 1;
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(current => (current === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(field);
+      setSortOrder("asc");
+    }
+  };
+
+  const toggleCategoryCollapse = (catName) => {
+    setCollapsedCategories(current => ({
+      ...current,
+      [catName]: !current[catName]
+    }));
+  };
+
+  const getSortIcon = (field) => {
+    if (sortBy !== field) return <FaSort className="text-neutral-300" />;
+    return sortOrder === "asc" ? <FaSortUp className="text-red-600" /> : <FaSortDown className="text-red-600" />;
+  };
 
   return (
-    <section className="px-4 py-6 sm:px-8">
-      <p className="text-sm uppercase tracking-[0.24em] text-gold-400">Admin full control</p>
-      <h1 className="mt-2 text-4xl font-black">Menu Management</h1>
-      <div className="mt-7 grid gap-5 xl:grid-cols-[420px_1fr]">
-        <form onSubmit={submit} className="rounded-3xl border border-white/10 bg-white/[0.06] p-5">
-          <h2 className="mb-4 text-xl font-black">{editingId ? "Edit Menu Item" : "Add Menu Item"}</h2>
+    <section className="px-4 py-8 sm:px-8 max-w-7xl mx-auto space-y-6 text-neutral-800">
+      
+      {/* Header */}
+      <div>
+        <p className="text-xs uppercase tracking-[0.24em] text-red-600 font-black">
+          Bistro Management Portal
+        </p>
+        <h1 className="mt-1 text-3xl font-black text-neutral-800 leading-tight tracking-tight">
+          Menu Management
+        </h1>
+      </div>
+
+      {/* Menu Statistics Dashboard */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        {[
+          ["Total Categories", stats.totalCats, <FaFolderOpen size={15} />, "border-amber-100 bg-amber-50 text-amber-700"],
+          ["Total Products", stats.totalProds, <FaUtensils size={15} />, "border-blue-100 bg-blue-50 text-blue-700"],
+          ["Active Products", stats.active, <FaCheckCircle size={15} />, "border-green-100 bg-green-50 text-green-700"],
+          ["Inactive Products", stats.inactive, <FaTimesCircle size={15} />, "border-red-100 bg-red-50 text-red-700"]
+        ].map(([title, val, icon, colorClasses]) => (
+          <div key={title} className={`rounded-3xl border p-5 shadow-sm flex items-center justify-between bg-white ${colorClasses}`}>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider opacity-70">{title}</p>
+              <p className="text-2xl font-black mt-1 leading-none text-neutral-800">{val}</p>
+            </div>
+            <div className="p-2.5 rounded-2xl bg-white border border-neutral-100 shadow-sm">
+              {icon}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Control Filters Bar */}
+      <div className="flex flex-col md:flex-row gap-3 bg-white border border-neutral-200/60 p-4 rounded-3xl justify-between items-stretch md:items-center shadow-sm">
+        
+        {/* Search */}
+        <label className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 flex-1 max-w-md">
+          <FaSearch className="text-red-600" />
           <input
-            className="input-field mb-3"
-            placeholder="Name"
-            value={form.name}
-            onChange={(event) => setForm({ ...form, name: event.target.value })}
-            required
+            id="productSearchInput"
+            className="w-full bg-transparent text-sm text-neutral-800 outline-none placeholder:text-neutral-400 font-medium"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name, category, product code..."
+            aria-label="Search products"
           />
-          <textarea
-            className="input-field mb-3 min-h-28"
-            placeholder="Description"
-            value={form.description}
-            onChange={(event) => setForm({ ...form, description: event.target.value })}
-          />
-          <input
-            className="input-field mb-3"
-            placeholder="Image URL"
-            value={form.imageUrl}
-            onChange={(event) => setForm({ ...form, imageUrl: event.target.value })}
-            type="text"
-          />
-          <select className="input-field mb-3" value={form.pricingType} onChange={(event) => setForm({ ...form, pricingType: event.target.value })}>
-            <option value="single">Single</option>
-            <option value="half-full">Half / Full</option>
+        </label>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-3 items-center">
+          
+          {/* Category Filter */}
+          <select
+            id="categoryFilterSelect"
+            value={selectedCategoryFilter}
+            onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+            className="bg-white border border-neutral-200 text-xs font-bold rounded-2xl px-4 py-2.5 text-neutral-700 focus:border-red-500 focus:outline-none cursor-pointer shadow-sm"
+            aria-label="Filter by category"
+          >
+            <option value="all">All Categories</option>
+            {categories.map((c) => (
+              <option key={c._id} value={c._id}>{c.name}</option>
+            ))}
           </select>
-          {form.pricingType === "single" ? (
+
+          {/* Status Filter buttons */}
+          <div className="flex gap-1 bg-neutral-100 rounded-2xl border border-neutral-200/50 p-1">
+            {["all", "available", "unavailable"].map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setFilterMode(mode)}
+                className={`rounded-xl px-3.5 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all duration-150 ${
+                  filterMode === mode ? "bg-red-600 text-white shadow-sm" : "text-neutral-500 hover:text-neutral-700"
+                }`}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
+        
+        {/* Add/Edit Form */}
+        <form onSubmit={submit} className="rounded-3xl border border-neutral-200/60 bg-white p-5 h-fit space-y-4 shadow-sm">
+          <h2 className="text-base font-black text-neutral-800 border-b border-neutral-100 pb-3">
+            {editingId ? "Edit Menu Item" : "Add Menu Item"}
+          </h2>
+          
+          <div>
+            <label htmlFor="formName" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">Product Name</label>
             <input
-              className="input-field mb-3"
-              type="number"
-              min="0"
-              placeholder="Single Price"
-              value={form.singlePrice}
-              onChange={(event) => setForm({ ...form, singlePrice: event.target.value })}
+              id="formName"
+              className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-800 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 font-medium"
+              placeholder="e.g. Margherita Pizza"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
             />
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <input
-                className="input-field mb-3"
-                type="number"
-                min="0"
-                placeholder="Half Price"
-                value={form.halfPrice}
-                onChange={(event) => setForm({ ...form, halfPrice: event.target.value })}
+          </div>
+
+          <div>
+            <label htmlFor="formDesc" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">Description</label>
+            <textarea
+              id="formDesc"
+              className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-800 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 min-h-20 resize-none font-medium"
+              placeholder="Describe the dish ingredients..."
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="formImage" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">Image URL</label>
+            <input
+              id="formImage"
+              className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-800 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 font-medium"
+              placeholder="Paste unsplash food image link..."
+              value={form.imageUrl}
+              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+              type="text"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="formCategory" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">Category</label>
+              <select 
+                id="formCategory"
+                className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-700 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 cursor-pointer font-bold"
+                value={form.category} 
+                onChange={(e) => setForm({ ...form, category: e.target.value })} 
                 required
-              />
-              <input
-                className="input-field mb-3"
-                type="number"
-                min="0"
-                placeholder="Full Price"
-                value={form.fullPrice}
-                onChange={(event) => setForm({ ...form, fullPrice: event.target.value })}
-                required
-              />
+              >
+                <option value="" disabled>Select Category</option>
+                {categories?.map((cat) => (
+                  <option key={cat._id} value={cat._id}>{cat.name}</option>
+                ))}
+              </select>
             </div>
-          )}
-          <select className="input-field mb-3" value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} required>
-            <option value="" disabled>Select Category</option>
-            {categories?.map((category) => <option key={category._id} value={category._id}>{category.name}</option>)}
-          </select>
-          <p className="mb-4 text-xs text-white/45">
-            {form.pricingType === "half-full"
-              ? `Half: ₹${form.halfPrice || 0} · Full: ₹${form.fullPrice || 0}`
-              : `Single: ₹${form.singlePrice || 0}`}
-          </p>
-          <Button type="submit" className="w-full">
+
+            <div>
+              <label htmlFor="formPricingType" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">Price Structure</label>
+              <select 
+                id="formPricingType"
+                className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-700 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 cursor-pointer font-bold"
+                value={form.pricingType} 
+                onChange={(e) => setForm({ ...form, pricingType: e.target.value })}
+              >
+                <option value="single">Single Price</option>
+                <option value="half-full">Half / Full Portion</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            {form.pricingType === "single" ? (
+              <div>
+                <label htmlFor="formSinglePrice" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">Price (₹)</label>
+                <input
+                  id="formSinglePrice"
+                  className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-800 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 font-bold"
+                  type="number"
+                  min="0"
+                  placeholder="₹ Single Portion Price"
+                  value={form.singlePrice}
+                  onChange={(e) => setForm({ ...form, singlePrice: e.target.value })}
+                  required
+                />
+              </div>
+            ) : (
+              <div className="grid gap-3 grid-cols-2">
+                <div>
+                  <label htmlFor="formHalfPrice" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">Half Price (₹)</label>
+                  <input
+                    id="formHalfPrice"
+                    className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-800 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 font-bold"
+                    type="number"
+                    min="0"
+                    placeholder="₹ Half Price"
+                    value={form.halfPrice}
+                    onChange={(e) => setForm({ ...form, halfPrice: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="formFullPrice" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">Full Price (₹)</label>
+                  <input
+                    id="formFullPrice"
+                    className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-800 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 font-bold"
+                    type="number"
+                    min="0"
+                    placeholder="₹ Full Price"
+                    value={form.fullPrice}
+                    onChange={(e) => setForm({ ...form, fullPrice: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Button type="submit" className="w-full uppercase tracking-wider text-xs font-black py-3.5 mt-2 rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-sm">
             {editingId ? "Update Menu Item" : "Save Menu Item"}
           </Button>
+
           {editingId && (
             <button
               type="button"
@@ -211,70 +496,299 @@ export default function MenuManagement() {
                 setEditingId(null);
                 setForm({ ...emptyForm, category: categories[0]?._id || "" });
               }}
-              className="mt-2 w-full rounded-2xl border border-white/10 py-3 font-bold hover:text-red-400 bg-white/5 text-white/60"
+              className="w-full rounded-xl border border-neutral-200 py-3 font-bold hover:bg-neutral-50 text-neutral-500 text-xs transition duration-200"
             >
               Cancel Edit
             </button>
           )}
 
-          <div className="mt-5 flex gap-2 pt-4 border-t border-white/10">
-            <input className="input-field" placeholder="Create new category" value={newCategory} onChange={(event) => setNewCategory(event.target.value)} />
-            <button type="button" onClick={addCategory} className="rounded-xl bg-gold-500 px-4 font-bold text-black">Add</button>
+          {/* Quick Category Addition */}
+          <div className="pt-4 border-t border-neutral-100 space-y-2">
+            <label htmlFor="newCategoryInput" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400">Create New Category</label>
+            <div className="flex gap-2">
+              <input 
+                id="newCategoryInput"
+                className="flex-1 px-4 py-2.5 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-800 focus:outline-none focus:border-red-500 font-semibold" 
+                placeholder="Category Name" 
+                value={newCategory} 
+                onChange={(e) => setNewCategory(e.target.value)} 
+              />
+              <button 
+                type="button" 
+                onClick={addCategory} 
+                className="rounded-xl bg-red-600 hover:bg-red-700 px-4 text-xs font-black text-white transition-colors"
+              >
+                Add
+              </button>
+            </div>
           </div>
         </form>
 
-        <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-5">
-          <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-            <h2 className="text-xl font-black">Food Items</h2>
-            <div className="flex gap-2 rounded-xl bg-black/45 p-1">
-              {["all", "available", "unavailable"].map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setFilterMode(mode)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-bold capitalize transition ${
-                    filterMode === mode ? "bg-gold-500 text-black" : "text-white/60 hover:text-white"
-                  }`}
-                >
-                  {mode}
-                </button>
-              ))}
+        {/* Listing & Presentation */}
+        <div className="rounded-3xl border border-neutral-200/60 bg-white p-5 flex flex-col min-h-[500px] shadow-sm">
+          
+          {/* Header & Tabs */}
+          <div className="mb-4 flex flex-col sm:flex-row justify-between gap-3 items-stretch sm:items-center border-b border-neutral-100 pb-3">
+            <h2 className="text-base font-black text-neutral-800 flex items-center gap-2">
+              <FaUtensils className="text-red-600" /> Food Items Listing
+            </h2>
+            
+            {/* View Mode Toggle */}
+            <div className="flex bg-neutral-100 border border-neutral-200/50 rounded-2xl p-0.5 self-start">
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-[10px] font-black uppercase transition ${
+                  viewMode === "table" ? "bg-red-600 text-white shadow-sm font-black" : "text-neutral-500 hover:text-neutral-700"
+                }`}
+              >
+                <FaTable size={10} /> Table View
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("category")}
+                className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-[10px] font-black uppercase transition ${
+                  viewMode === "category" ? "bg-red-600 text-white shadow-sm font-black" : "text-neutral-500 hover:text-neutral-700"
+                }`}
+              >
+                <FaFolder size={10} /> Category View
+              </button>
             </div>
           </div>
-          <div className="grid gap-3">
-            {filteredItems?.map((item) => (
-              <div key={item._id} className="grid gap-3 rounded-2xl bg-black/30 p-3 sm:grid-cols-[72px_1fr_auto] sm:items-center">
-                <img className="h-18 h-[72px] w-[72px] rounded-xl object-cover" src={item.imageUrl || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=300&q=80"} alt={item.name} />
-                <div>
-                  <h3 className="font-bold">{item.name}</h3>
-                  <p className="text-sm text-white/50">
-                    {item.category?.name} · {item.pricingType === "half-full" ? `Half ₹${item.halfPrice || 0} / Full ₹${item.fullPrice || 0}` : `₹${item.singlePrice ?? item.price ?? 0}`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => toggleAvailability(item)}
-                    className={`rounded-xl px-3 py-2 text-xs font-bold transition ${
-                      (item.available ?? item.isAvailable)
-                        ? "bg-green-500/20 text-green-400 hover:bg-green-500/35"
-                        : "bg-red-500/20 text-red-400 hover:bg-red-500/35"
-                    }`}
-                  >
-                    {(item.available ?? item.isAvailable) ? "Available" : "Unavailable"}
-                  </button>
-                  <button onClick={() => startEdit(item)} className="rounded-xl bg-white/10 p-3 text-gold-400 hover:text-gold-300">
-                    <FaPen />
-                  </button>
-                  <button onClick={() => deleteMenuItem(item._id).then(refresh)} className="rounded-xl bg-red-500/10 p-3 text-red-300 hover:text-red-200">
-                    <FaTrash />
-                  </button>
-                </div>
+
+          {/* VIEW: 1. Table View with Columns, Sort, and Pagination */}
+          {viewMode === "table" ? (
+            <div className="flex-1 flex flex-col justify-between">
+              
+              {/* Responsive Container */}
+              <div className="overflow-x-auto w-full">
+                <table className="w-full text-left border-collapse" aria-label="Menu Items Table">
+                  <thead>
+                    <tr className="border-b border-neutral-100 text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                      <th className="py-3 px-2">Image</th>
+                      <th className="py-3 px-2 cursor-pointer select-none hover:text-neutral-800" onClick={() => handleSort("name")}>
+                        <div className="flex items-center gap-1.5">
+                          Product Name {getSortIcon("name")}
+                        </div>
+                      </th>
+                      <th className="py-3 px-2 cursor-pointer select-none hover:text-neutral-800" onClick={() => handleSort("category")}>
+                        <div className="flex items-center gap-1.5">
+                          Category {getSortIcon("category")}
+                        </div>
+                      </th>
+                      <th className="py-3 px-2 cursor-pointer select-none hover:text-neutral-800" onClick={() => handleSort("price")}>
+                        <div className="flex items-center gap-1.5">
+                          Price {getSortIcon("price")}
+                        </div>
+                      </th>
+                      <th className="py-3 px-2">Status</th>
+                      <th className="py-3 px-2 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-100 text-sm text-neutral-600 font-semibold">
+                    {paginatedItems.map((item) => (
+                      <tr key={item._id} className="hover:bg-neutral-50/50 transition-colors">
+                        <td className="py-3 px-2">
+                          <img
+                            className="h-11 w-11 rounded-xl object-cover border border-neutral-100 shadow-sm"
+                            src={item.imageUrl || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80"}
+                            alt={item.name}
+                            onError={(e) => {
+                              e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80";
+                            }}
+                          />
+                        </td>
+                        <td className="py-3 px-2">
+                          <div className="font-black text-neutral-800 leading-tight">{item.name}</div>
+                          <div className="text-[10px] font-mono text-neutral-400 mt-0.5 uppercase">
+                            CODE: T-{item._id?.substring(item._id.length - 6).toUpperCase()}
+                          </div>
+                        </td>
+                        <td className="py-3 px-2 text-neutral-500">
+                          {item.category?.name || "Uncategorized"}
+                        </td>
+                        <td className="py-3 px-2 font-black text-red-600">
+                          {item.pricingType === "half-full" 
+                            ? `H:₹${item.halfPrice || 0} / F:₹${item.fullPrice || 0}` 
+                            : `₹${item.singlePrice ?? item.price ?? 0}`}
+                        </td>
+                        <td className="py-3 px-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleAvailability(item)}
+                            className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider transition ${
+                              (item.available ?? item.isAvailable)
+                                ? "bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
+                                : "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
+                            }`}
+                          >
+                            {(item.available ?? item.isAvailable) ? "Active" : "Inactive"}
+                          </button>
+                        </td>
+                        <td className="py-3 px-2 text-right">
+                          <div className="inline-flex gap-1.5">
+                            <button 
+                              onClick={() => startEdit(item)} 
+                              className="rounded-xl bg-white p-2 text-neutral-500 hover:text-neutral-800 border border-neutral-200 hover:bg-neutral-50 shadow-sm"
+                              aria-label={`Edit ${item.name}`}
+                            >
+                              <FaPen size={9} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteItem(item._id)} 
+                              className="rounded-xl bg-red-50 p-2 text-red-600 hover:text-red-700 border border-red-100 hover:bg-red-100/50"
+                              aria-label={`Delete ${item.name}`}
+                            >
+                              <FaTrash size={9} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {(!paginatedItems || paginatedItems.length === 0) && (
+                      <tr>
+                        <td colSpan="6" className="py-8 text-center text-neutral-400">
+                          No menu items match the selected filter.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-            ))}
-            {(!filteredItems || filteredItems.length === 0) && <p className="text-white/55">No menu items match selected filter.</p>}
-          </div>
+
+              {/* Table Pagination */}
+              {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-neutral-100 mt-4 text-xs text-neutral-400">
+                  <p>
+                    Showing <span className="font-bold text-neutral-700">{Math.min(filteredAndSortedItems.length, (currentPage - 1) * itemsPerPage + 1)}</span> to{" "}
+                    <span className="font-bold text-neutral-700">{Math.min(filteredAndSortedItems.length, currentPage * itemsPerPage)}</span> of{" "}
+                    <span className="font-bold text-neutral-700">{filteredAndSortedItems.length}</span> products
+                  </p>
+                  
+                  <div className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(c => Math.max(1, c - 1))}
+                      className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 hover:text-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed text-[10px] font-black uppercase"
+                    >
+                      Prev
+                    </button>
+                    {[...Array(totalPages)].map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setCurrentPage(i + 1)}
+                        className={`rounded-lg px-2.5 py-1.5 text-[10px] font-black transition ${
+                          currentPage === i + 1 ? "bg-red-600 text-white" : "border border-neutral-200 bg-white text-neutral-500 hover:text-neutral-700"
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(c => Math.min(totalPages, c + 1))}
+                      className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 hover:text-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed text-[10px] font-black uppercase"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          ) : (
+            /* VIEW: 2. Grouped Category Accordion Panels */
+            <div className="space-y-3">
+              {Object.entries(groupedItems).map(([catName, prodList]) => {
+                const isCollapsed = collapsedCategories[catName] === true;
+                return (
+                  <div key={catName} className="rounded-2xl border border-neutral-100 bg-neutral-50/20 overflow-hidden">
+                    
+                    {/* Collapsible header */}
+                    <button
+                      type="button"
+                      onClick={() => toggleCategoryCollapse(catName)}
+                      className="w-full flex items-center justify-between p-4 bg-neutral-50/50 hover:bg-neutral-100/30 transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <FaFolder className="text-red-600" />
+                        <span className="font-black text-neutral-800 tracking-tight">{catName}</span>
+                        <span className="rounded-full bg-white border border-neutral-200 px-2 py-0.5 text-[9px] font-bold text-neutral-500 shadow-sm">
+                          {prodList.length} {prodList.length === 1 ? "item" : "items"}
+                        </span>
+                      </div>
+                      <div>
+                        {isCollapsed ? <FaChevronDown className="text-neutral-500" /> : <FaChevronUp className="text-neutral-500" />}
+                      </div>
+                    </button>
+
+                    {/* Accordion panel products */}
+                    {!isCollapsed && (
+                      <div className="p-3 divide-y divide-neutral-100 bg-white">
+                        {prodList.map((item) => (
+                          <div key={item._id} className="flex gap-4 py-3 first:pt-0 last:pb-0 items-center justify-between">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <img
+                                className="h-10 w-10 rounded-xl object-cover flex-shrink-0 border border-neutral-100"
+                                src={item.imageUrl || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80"}
+                                alt={item.name}
+                                onError={(e) => {
+                                  e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80";
+                                }}
+                              />
+                              <div className="min-w-0">
+                                <h4 className="font-black text-sm text-neutral-800 truncate leading-none">{item.name}</h4>
+                                <p className="text-[10px] text-neutral-500 font-mono mt-1.5 uppercase">
+                                  CODE: T-{item._id?.substring(item._id.length - 6).toUpperCase()} · {item.pricingType === "half-full" ? `H:₹${item.halfPrice} / F:₹${item.fullPrice}` : `₹${item.singlePrice ?? item.price}`}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => toggleAvailability(item)}
+                                className={`rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase transition ${
+                                  (item.available ?? item.isAvailable)
+                                    ? "bg-green-50 text-green-700 border border-green-150"
+                                    : "bg-red-50 text-red-700 border border-red-150"
+                                }`}
+                              >
+                                {(item.available ?? item.isAvailable) ? "Active" : "Inactive"}
+                              </button>
+                              <button 
+                                onClick={() => startEdit(item)} 
+                                className="rounded-xl bg-white p-2 text-neutral-500 hover:text-neutral-800 border border-neutral-200 hover:bg-neutral-50 shadow-sm"
+                              >
+                                <FaPen size={9} />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteItem(item._id)} 
+                                className="rounded-xl bg-red-50 p-2 text-red-600 hover:text-red-700 border border-red-100"
+                              >
+                                <FaTrash size={9} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {prodList.length === 0 && <p className="p-3 text-xs text-neutral-500">No items grouped in this category.</p>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {Object.keys(groupedItems).length === 0 && (
+                <p className="text-neutral-400 text-center py-8">No products found to group.</p>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
+
     </section>
   );
 }

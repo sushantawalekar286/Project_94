@@ -11,10 +11,10 @@ import { getActiveOrderByTable } from "../../services/orderService";
 
 const fallbackCategories = ["Pizza", "Burgers", "Fries", "Beverages"];
 const fallbackImages = {
-  Pizza: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=900&q=80",
-  Burgers: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=80",
-  Fries: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=900&q=80",
-  Beverages: "https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=900&q=80"
+  Pizza: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=500&q=80",
+  Burgers: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=500&q=80",
+  Fries: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=500&q=80",
+  Beverages: "https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=500&q=80"
 };
 
 const fallbackMenu = fallbackCategories.flatMap((category, categoryIndex) =>
@@ -27,26 +27,24 @@ const fallbackMenu = fallbackCategories.flatMap((category, categoryIndex) =>
     halfPrice: 99 + categoryIndex * 40 + count * 20,
     fullPrice: 149 + categoryIndex * 75 + count * 40,
     price: 129 + categoryIndex * 70 + count * 35,
-    rating: 4.6 + count / 10,
+    rating: (4.4 + count / 10).toFixed(1),
     imageUrl: fallbackImages[category],
+    vegetarian: count % 2 !== 0,
     category: { name: category }
   }))
 );
 
 const MenuSkeleton = () => (
-  <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 animate-pulse">
-    {[...Array(6)].map((_, i) => (
-      <div key={i} className="rounded-3xl border border-white/5 bg-white/[0.02] p-5 h-[380px] flex flex-col justify-between">
-        <div className="h-48 w-full bg-white/5 rounded-2xl" />
-        <div className="space-y-3 mt-4">
-          <div className="h-6 w-3/4 bg-white/10 rounded-lg" />
-          <div className="h-4 w-full bg-white/5 rounded-lg" />
-          <div className="h-4 w-5/6 bg-white/5 rounded-lg" />
+  <div className="space-y-4 px-4 py-2 animate-pulse bg-white">
+    {[...Array(5)].map((_, i) => (
+      <div key={i} className="flex justify-between items-center gap-4 py-4 border-b border-neutral-100">
+        <div className="flex-1 space-y-3">
+          <div className="h-4 w-1/3 bg-neutral-200 rounded" />
+          <div className="h-5 w-3/4 bg-neutral-200 rounded" />
+          <div className="h-3 w-5/6 bg-neutral-100 rounded" />
+          <div className="h-3 w-1/2 bg-neutral-100 rounded" />
         </div>
-        <div className="flex gap-3 mt-4">
-          <div className="h-10 w-24 bg-white/5 rounded-xl" />
-          <div className="h-10 flex-1 bg-white/10 rounded-xl" />
-        </div>
+        <div className="h-24 w-24 bg-neutral-200 rounded-2xl flex-shrink-0" />
       </div>
     ))}
   </div>
@@ -84,13 +82,12 @@ const getSuperCategoryForItem = (categoryName) => {
     }
   }
   
-  // Smart fallback substring checking
   const name = categoryName.toLowerCase();
   if (name.includes("momo") || name.includes("soup") || name.includes("chopsuey") || name.includes("noodle") || name.includes("rice") || name.includes("chicken")) {
     return "Chinese Menu";
   }
   
-  return "Cafe Menu"; // Default fallback
+  return "Cafe Menu";
 };
 
 export default function MenuPage() {
@@ -106,7 +103,7 @@ export default function MenuPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { addItem, items: cartItems, tableSession, setTableSession } = useCart();
+  const { items: cartItems, tableSession, setTableSession } = useCart();
 
   const tableParam = params.get("table");
   const tokenParam = params.get("token");
@@ -138,12 +135,14 @@ export default function MenuPage() {
 
   useEffect(() => {
     getMenu()
-      .then((res) => setItems(res.data?.length ? res.data : fallbackMenu))
+      .then((res) => {
+        const data = res.data?.data || res.data || [];
+        setItems(data.length ? data : fallbackMenu);
+      })
       .catch(() => setItems(fallbackMenu))
       .finally(() => setLoading(false));
   }, []);
 
-  // Check active order status for the table
   useEffect(() => {
     const tableNum = tableId || tableParam || tableSession.tableNumber;
     if (tableNum) {
@@ -154,7 +153,6 @@ export default function MenuPage() {
             localStorage.setItem("activeOrderId", res.data.order._id);
             localStorage.setItem("tableNumber", String(tableNum));
             
-            // Redirect customer if they are not explicitly coming back from the tracking screen
             if (!location.state?.fromTracking) {
               navigate("/customer/tracking", { state: { order: res.data.order } });
             }
@@ -168,7 +166,6 @@ export default function MenuPage() {
     }
   }, [tableId, tableParam, tableSession.tableNumber, location.state, navigate]);
 
-  // Filter menu items based on the selected supercategory
   const menuItemsFilteredBySuper = useMemo(() => {
     return items.filter(item => {
       const superCat = getSuperCategoryForItem(item.category?.name);
@@ -178,55 +175,59 @@ export default function MenuPage() {
 
   const categories = useMemo(() => {
     const names = [...new Set(menuItemsFilteredBySuper.map((item) => item.category?.name).filter(Boolean))];
-    const baseCategories = names;
-    return [{ name: "All" }, ...baseCategories.map((name) => ({ name }))];
+    return [{ name: "All" }, ...names.map((name) => ({ name }))];
   }, [menuItemsFilteredBySuper]);
 
-  const filtered = menuItemsFilteredBySuper.filter((item) => {
-    const matchesCategory = category === "All" || item.category?.name === category;
-    const matchesSearch = `${item.name} ${item.description}`.toLowerCase().includes(search.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  // Apply dietary filter from profile page if checked
+  const filtered = useMemo(() => {
+    const isVegOnly = localStorage.getItem("prefVegOnly") === "true";
+    return menuItemsFilteredBySuper.filter((item) => {
+      const matchesCategory = category === "All" || item.category?.name === category;
+      const matchesSearch = `${item.name} ${item.description || ""}`.toLowerCase().includes(search.toLowerCase());
+      const matchesVeg = !isVegOnly || item.vegetarian === true;
+      return matchesCategory && matchesSearch && matchesVeg;
+    });
+  }, [menuItemsFilteredBySuper, category, search, localStorage.getItem("prefVegOnly")]);
 
   if (!selectedMenuCategory) {
     return (
-      <section className="min-h-screen bg-black px-4 py-16 text-white sm:px-6 lg:px-10 flex flex-col items-center justify-center">
-        <div className="mx-auto max-w-4xl text-center">
-          <p className="text-xs uppercase tracking-[0.3em] text-gold-400 font-bold mb-3 animate-pulse">Welcome to Aurum Bistro</p>
-          <h1 className="text-4xl font-black sm:text-6xl mb-6 bg-gradient-to-r from-white via-white/80 to-gold-400 bg-clip-text text-transparent">
+      <section className="min-h-screen bg-[#FAF9F6] px-5 py-12 flex flex-col items-center justify-center text-neutral-800">
+        <div className="w-full max-w-sm text-center">
+          <span className="text-[10px] font-black uppercase tracking-[0.25em] bg-red-50 text-red-600 px-3 py-1 rounded-full border border-red-100">
+            Aurum Bistro
+          </span>
+          <h1 className="text-3xl font-black mt-6 mb-2 text-neutral-800 tracking-tight">
             Select Your Menu
           </h1>
-          <p className="text-white/60 max-w-lg mx-auto text-sm sm:text-base mb-12">
-            Please choose a menu category to view our freshly prepared selections for Table {tableSession.tableNumber || tableId || 1}.
+          <p className="text-neutral-500 text-xs max-w-xs mx-auto mb-10 leading-relaxed">
+            Welcome to Table {tableSession.tableNumber || tableId || 1}. Choose a menu selection to explore our culinary options.
           </p>
 
-          <div className="grid gap-6 sm:grid-cols-2">
+          <div className="space-y-4">
             {Object.entries(SUPER_CATEGORIES).map(([key, config]) => (
               <motion.div
                 key={key}
-                whileHover={{ scale: 1.03, y: -4 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
                   sessionStorage.setItem("selectedMenuCategory", key);
                   setSelectedMenuCategory(key);
                 }}
-                className="relative cursor-pointer overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-left shadow-2xl hover:border-gold-400/40 hover:shadow-glow transition-all duration-300 group h-80 flex flex-col justify-end"
+                className="relative cursor-pointer overflow-hidden rounded-3xl border border-neutral-100 bg-white p-5 text-left shadow-sm hover:border-red-200 transition-all duration-200 group h-52 flex flex-col justify-end"
               >
-                {/* Background image overlay */}
                 <div 
-                  className="absolute inset-0 bg-cover bg-center opacity-30 group-hover:opacity-45 transition-opacity duration-300"
+                  className="absolute inset-0 bg-cover bg-center opacity-30 group-hover:opacity-40 transition-opacity duration-300"
                   style={{ backgroundImage: `url(${config.image})` }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent" />
 
                 <div className="relative z-10">
-                  <h2 className="text-2xl font-black text-white group-hover:text-gold-400 transition-colors">
+                  <h2 className="text-lg font-black text-neutral-800 group-hover:text-red-600 transition-colors">
                     {config.title}
                   </h2>
-                  <p className="mt-2 text-sm text-white/70">
+                  <p className="mt-1 text-xs text-neutral-500 leading-normal max-w-xs">
                     {config.description}
                   </p>
-                  <div className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-gold-400 group-hover:translate-x-1 transition-transform">
+                  <div className="mt-3 inline-flex items-center gap-1 text-[10px] font-bold text-red-600 uppercase tracking-wider">
                     View Menu &rarr;
                   </div>
                 </div>
@@ -239,94 +240,81 @@ export default function MenuPage() {
   }
 
   return (
-    <section className="min-h-screen bg-black px-4 pb-28 pt-5 text-white sm:px-6 lg:px-10">
-      <div className="mx-auto max-w-7xl">
-        <header className="sticky top-0 z-20 -mx-4 border-b border-white/10 bg-black/80 px-4 py-4 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
-          <div className="flex items-center justify-between gap-4">
+    <section className="min-h-screen bg-white text-neutral-800">
+      
+      {/* Sticky header matching food-delivery apps */}
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-100 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+        <div className="px-4 pt-4 pb-3">
+          
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-gold-400">Aurum Bistro</p>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-black sm:text-4xl">Digital Menu</h1>
-                <span className="rounded-full bg-gold-400/10 border border-gold-400/20 px-3 py-1 text-xs font-black text-gold-400 uppercase tracking-wider">
+              <span className="text-[10px] font-black uppercase tracking-wider text-red-600">Aurum Bistro</span>
+              <div className="flex items-center gap-2 mt-0.5">
+                <h1 className="text-xl font-black text-neutral-800 leading-tight">Digital Menu</h1>
+                <span className="rounded-full bg-neutral-100 border border-neutral-200/50 px-2.5 py-0.5 text-[9px] font-black text-neutral-600 uppercase tracking-wider">
                   {selectedMenuCategory.replace(" Menu", "")}
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  sessionStorage.removeItem("selectedMenuCategory");
-                  setSelectedMenuCategory("");
-                  setCategory("All");
-                }}
-                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-black text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                Switch Menu
-              </button>
-              <button
-                onClick={() => navigate(`/customer/cart?table=${tableSession.tableNumber}`)}
-                className="relative grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-primary-500 to-gold-500 text-white shadow-glow"
-              >
-                <FaShoppingBag />
-                {cartItems.length > 0 && (
-                  <span className="absolute -right-1 -top-1 grid h-6 w-6 place-items-center rounded-full bg-white text-xs font-black text-black">
-                    {cartItems.length}
-                  </span>
-                )}
-              </button>
-            </div>
+            
+            <button
+              onClick={() => {
+                sessionStorage.removeItem("selectedMenuCategory");
+                setSelectedMenuCategory("");
+                setCategory("All");
+              }}
+              className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-[10px] font-black text-neutral-600 hover:bg-neutral-50 active:scale-95 transition-all"
+            >
+              Switch
+            </button>
           </div>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <label className="flex flex-1 items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
-              <FaSearch className="text-gold-400" />
+
+          {/* Search bar inside header */}
+          <div className="mt-3.5 flex gap-2">
+            <label className="flex flex-1 items-center gap-2.5 rounded-2xl border border-neutral-200 bg-neutral-50 px-3.5 py-2.5">
+              <FaSearch className="text-neutral-400 text-sm" />
               <input
-                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/45"
+                className="w-full bg-transparent text-xs text-neutral-800 outline-none placeholder:text-neutral-400 font-medium"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search pizza, burgers, fries, beverages, noodles, soups..."
+                placeholder="Search rolls, pizza, beverages, momos, noodles..."
               />
             </label>
-            <div className="rounded-2xl border border-gold-400/20 bg-gold-400/10 px-4 py-3 text-sm font-bold text-gold-400">
+            <div className="rounded-2xl border border-red-100 bg-red-50 px-3.5 py-2.5 text-xs font-black text-red-600 flex items-center justify-center">
               Table {tableSession.tableNumber}
             </div>
           </div>
-        </header>
 
-        <div className="mt-6">
-          <CategoryList categories={categories} active={category} onSelect={setCategory} />
         </div>
 
+        {/* Sticky horizontal category filter pills */}
+        <div className="bg-white border-t border-neutral-50 py-1.5">
+          <CategoryList categories={categories} active={category} onSelect={setCategory} />
+        </div>
+      </header>
+
+      {/* Product List */}
+      <div className="pb-20">
         {loading ? (
           <MenuSkeleton />
         ) : (
-          <motion.div layout className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="px-4">
             {filtered.length === 0 ? (
-              <div className="col-span-full py-16 text-center text-white/45 bg-white/[0.02] rounded-3xl border border-dashed border-white/10 p-10 max-w-md mx-auto mt-6">
-                <FaUtensils className="mx-auto text-4xl text-white/30 mb-3" />
-                <p className="font-bold text-white">No items found</p>
-                <p className="text-xs text-white/40 mt-1">We couldn't find any dishes matching "{search}" or under category "{category}".</p>
+              <div className="py-16 text-center bg-neutral-50 rounded-3xl border border-dashed border-neutral-200 p-8 max-w-xs mx-auto mt-8">
+                <FaUtensils className="mx-auto text-3xl text-neutral-300 mb-3" />
+                <p className="font-bold text-neutral-700 text-sm">No items found</p>
+                <p className="text-xs text-neutral-400 mt-1 max-w-xs leading-normal">
+                  We couldn't find any dishes matching "{search}" or with your active dietary settings.
+                </p>
               </div>
             ) : (
-              filtered.map((item, index) => (
-                <MenuCard
-                  key={item._id}
-                  item={item}
-                  index={index}
-                  onAdd={(selected, quantity, portionType, price) => {
-                    addItem({
-                      menuItem: selected._id,
-                      name: selected.name,
-                      price,
-                      quantity,
-                      imageUrl: selected.imageUrl,
-                      portionType
-                    });
-                    toast.success(`${selected.name} added to cart`);
-                  }}
-                />
-              ))
+              <div className="divide-y divide-neutral-100">
+                {filtered.map((item) => (
+                  <MenuCard key={item._id} item={item} />
+                ))}
+              </div>
             )}
-          </motion.div>
+          </div>
         )}
       </div>
 
@@ -337,13 +325,13 @@ export default function MenuPage() {
             initial={{ y: 100, x: "-50%", opacity: 0 }}
             animate={{ y: 0, x: "-50%", opacity: 1 }}
             exit={{ y: 100, x: "-50%", opacity: 0 }}
-            transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="fixed bottom-6 left-1/2 z-50 flex gap-4 w-[calc(100%-2rem)] max-w-md"
+            transition={{ type: "spring", stiffness: 260, damping: 22 }}
+            className="fixed bottom-6 left-1/2 z-40 flex gap-3 w-[calc(100%-2rem)] max-w-xs"
           >
             {cartItems.length > 0 && (
               <button
-                onClick={() => navigate(`/customer/cart?table=${tableSession.tableNumber}`)}
-                className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary-600 to-gold-500 py-4 font-black text-white shadow-glow text-sm transition-transform active:scale-95"
+                onClick={() => navigate("/customer/cart")}
+                className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-red-600 to-red-700 py-3.5 font-black text-white shadow-md text-xs transition-transform active:scale-95 uppercase tracking-wider"
               >
                 <FaShoppingBag />
                 <span>View Cart ({cartItems.length})</span>
@@ -353,7 +341,7 @@ export default function MenuPage() {
             {hasActiveOrder && (
               <button
                 onClick={() => navigate("/customer/tracking")}
-                className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-neutral-900 border border-white/10 hover:bg-neutral-800 py-4 font-black text-gold-400 shadow-xl text-sm transition-transform active:scale-95"
+                className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-neutral-900 border border-neutral-800 py-3.5 font-black text-red-500 shadow-md text-xs transition-transform active:scale-95 uppercase tracking-wider"
               >
                 <FaConciergeBell className="animate-pulse" />
                 <span>Track Order</span>

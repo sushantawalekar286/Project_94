@@ -1,12 +1,12 @@
 const statusClasses = {
-  Pending: "bg-amber-400/15 text-amber-300 border-amber-300/30",
-  Accepted: "bg-blue-400/15 text-blue-300 border-blue-300/30",
-  Cooking: "bg-orange-400/15 text-orange-300 border-orange-300/30",
-  Ready: "bg-indigo-400/15 text-indigo-300 border-indigo-300/30",
-  Served: "bg-green-400/15 text-green-300 border-green-300/30",
-  Paid: "bg-emerald-400/15 text-emerald-300 border-emerald-300/30",
-  Completed: "bg-green-400/15 text-green-300 border-green-300/30",
-  Cancelled: "bg-red-400/15 text-red-300 border-red-300/30"
+  Pending: "bg-amber-50 text-amber-700 border-amber-200",
+  Accepted: "bg-blue-50 text-blue-700 border-blue-200",
+  Cooking: "bg-orange-50 text-orange-700 border-orange-200",
+  Ready: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  Served: "bg-green-50 text-green-700 border-green-200",
+  Paid: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  Completed: "bg-green-50 text-green-700 border-green-200",
+  Cancelled: "bg-red-50 text-red-700 border-red-200"
 };
 
 export default function StatusBadge({ status }) {

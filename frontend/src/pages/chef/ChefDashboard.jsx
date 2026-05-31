@@ -75,17 +75,17 @@ export default function ChefDashboard() {
   };
 
   return (
-    <section className="min-h-screen bg-[#080808] px-4 py-6 text-white sm:px-8">
+    <section className="min-h-screen bg-[#FAF9F6] px-4 py-8 text-neutral-800 sm:px-8">
       <header className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="flex items-center gap-2 text-sm uppercase tracking-[0.24em] text-gold-400"><FaFire /> Chef Panel</p>
-          <h1 className="mt-2 text-4xl font-black">Incoming Orders</h1>
+          <p className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-red-600 font-black"><FaFire /> Chef Panel</p>
+          <h1 className="mt-1 text-3xl font-black text-neutral-800 leading-tight tracking-tight">Incoming Orders</h1>
         </div>
         <div className="flex gap-3">
-          <button onClick={refresh} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-bold hover:text-gold-400">
+          <button onClick={refresh} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white hover:bg-neutral-50 px-4 py-3 text-sm font-bold shadow-sm transition">
             <FaSyncAlt /> Refresh
           </button>
-          <button onClick={logout} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-500/10 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-400 hover:text-red-300">
+          <button onClick={logout} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 text-red-600 hover:bg-red-100 px-4 py-3 text-sm font-bold transition">
             <FaSignOutAlt /> Logout
           </button>
         </div>
@@ -93,19 +93,19 @@ export default function ChefDashboard() {
 
       <div className="mb-7 grid gap-3 sm:grid-cols-3">
         {Object.entries(metrics).map(([label, value]) => (
-          <div key={label} className="rounded-3xl border border-white/10 bg-white/[0.06] p-5">
-            <p className="capitalize text-white/55">{label}</p>
-            <p className="mt-2 text-3xl font-black">{value}</p>
+          <div key={label} className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <p className="capitalize text-[10px] font-black uppercase tracking-wider text-neutral-500">{label}</p>
+            <p className="mt-2 text-3xl font-black text-neutral-800">{value}</p>
           </div>
         ))}
       </div>
 
       {loading ? (
-        <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-8 text-white/60">Loading orders...</div>
+        <div className="rounded-3xl border border-neutral-200 bg-white p-8 text-neutral-500 shadow-sm">Loading orders...</div>
       ) : (
         <div className="grid gap-5 xl:grid-cols-2">
           {orders.map((order) => <OrderCard key={order._id} order={order} onStatusChange={changeStatus} />)}
-          {!orders.length && <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-8 text-white/60">No active orders yet.</div>}
+          {!orders.length && <div className="rounded-3xl border border-neutral-200 bg-white p-8 text-neutral-500 shadow-sm">No active orders yet.</div>}
         </div>
       )}
     </section>

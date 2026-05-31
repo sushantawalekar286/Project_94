@@ -109,7 +109,7 @@ export default function QRManagement() {
               font-size: 14px;
               text-transform: uppercase;
               letter-spacing: 3px;
-              color: #c5a880;
+              color: #dc2626;
               font-weight: 800;
               margin-bottom: 20px;
             }
@@ -131,40 +131,63 @@ export default function QRManagement() {
   const totalTables = tables.length;
   const lastTableNumber = tables.reduce((max, t) => Math.max(max, t.number || 0), 0);
 
-  if (loading && tables.length === 0) return <div className="flex h-screen items-center justify-center text-white/55">Loading QR codes...</div>;
-  if (error && tables.length === 0) return <div className="flex h-screen items-center justify-center text-red-400">Failed to load QR codes.</div>;
+  if (loading && tables.length === 0) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#FAF9F6] text-neutral-400">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-red-600 border-t-transparent" />
+        <span className="ml-3 font-bold text-xs">Loading QR codes...</span>
+      </div>
+    );
+  }
+  
+  if (error && tables.length === 0) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#FAF9F6] text-red-600 font-bold">
+        Failed to load QR codes.
+      </div>
+    );
+  }
 
   return (
-    <section className="px-4 py-6 sm:px-8 text-white min-h-screen">
-      <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-gold-400">Unique QR per table</p>
-          <h1 className="text-4xl font-black mt-1">QR Management</h1>
-        </div>
-      </header>
+    <section className="px-4 py-8 sm:px-8 max-w-7xl mx-auto space-y-6 text-neutral-800">
+      
+      {/* Header */}
+      <div>
+        <p className="text-xs uppercase tracking-[0.24em] text-red-600 font-black">
+          Unique QR per table
+        </p>
+        <h1 className="mt-1 text-3xl font-black text-neutral-800 leading-tight tracking-tight">
+          QR Management
+        </h1>
+      </div>
 
       {/* Stats and Generation Form Grid */}
-      <div className="mt-8 grid gap-6 md:grid-cols-[1fr_350px]">
+      <div className="grid gap-6 md:grid-cols-[1fr_350px] mt-8">
+        
         {/* Left Side: Stats Cards */}
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 flex flex-col justify-between">
-            <p className="text-xs uppercase tracking-wider text-white/50">Total Tables</p>
-            <h2 className="text-5xl font-black mt-4 text-gold-400">{totalTables}</h2>
+          <div className="rounded-3xl border border-neutral-200 bg-white p-6 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-black uppercase tracking-wider text-neutral-400">Total Tables</p>
+            </div>
+            <h2 className="text-5xl font-black mt-4 text-red-600">{totalTables}</h2>
           </div>
-          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 flex flex-col justify-between">
-            <p className="text-xs uppercase tracking-wider text-white/50">Last Generated Table</p>
-            <h2 className="text-5xl font-black mt-4 text-gold-400">{lastTableNumber ? `Table ${lastTableNumber}` : "None"}</h2>
+          <div className="rounded-3xl border border-neutral-200 bg-white p-6 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-black uppercase tracking-wider text-neutral-400">Last Generated Table</p>
+            </div>
+            <h2 className="text-5xl font-black mt-4 text-red-600">{lastTableNumber ? `Table ${lastTableNumber}` : "None"}</h2>
           </div>
         </div>
 
         {/* Right Side: Generate New Tables Form */}
-        <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-6 shadow-glow backdrop-blur">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <FaPlus className="text-gold-400" size={14} /> Generate New Tables
+        <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <h3 className="text-base font-black text-neutral-800 flex items-center gap-2">
+            <FaPlus className="text-red-600" size={12} /> Generate New Tables
           </h3>
           <form onSubmit={handleGenerate} className="mt-4 flex flex-col gap-4">
             <div>
-              <label htmlFor="generate-count" className="text-xs text-white/60 block mb-2">Number of Tables</label>
+              <label htmlFor="generate-count" className="text-[10px] font-black uppercase tracking-wider text-neutral-400 block mb-2">Number of Tables</label>
               <input
                 id="generate-count"
                 type="number"
@@ -172,11 +195,11 @@ export default function QRManagement() {
                 max="50"
                 value={generateCount}
                 onChange={(e) => setGenerateCount(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-white outline-none focus:border-gold-400 transition-colors"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-800 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 font-bold"
               />
             </div>
-            <Button type="submit" loading={generating} className="w-full">
-              <FaQrcode /> Generate Tables
+            <Button type="submit" loading={generating} className="w-full py-3.5 text-xs font-black uppercase tracking-wider bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-sm">
+              <FaQrcode className="mr-1 inline" /> Generate Tables
             </Button>
           </form>
         </div>
@@ -184,50 +207,68 @@ export default function QRManagement() {
 
       {/* View Existing QR Codes section */}
       <div className="mt-12">
-        <h3 className="text-2xl font-black border-b border-white/15 pb-3">View Existing QR Codes</h3>
+        <h3 className="text-xl font-black border-b border-neutral-200 pb-3 flex items-center gap-2">
+          View Existing QR Codes
+        </h3>
+        
         <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {tables.map((table) => {
             const qrImageUrl = table.qrImage || table.qr?.qrDataUrl;
             const qrLinkUrl = table.qrUrl || table.qrCodeUrl || table.qr?.qrValue || `https://project-94-two.vercel.app/table/${table.number}`;
             return (
-              <article key={table._id} className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 flex flex-col justify-between hover:border-gold-400/30 transition-colors">
+              <article key={table._id} className="rounded-3xl border border-neutral-200 bg-white p-5 flex flex-col justify-between hover:border-red-500/20 transition-colors shadow-sm">
                 <div>
                   <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-black">Table {table.number}</h2>
-                    <span className={`text-xs px-2.5 py-1 rounded-full uppercase tracking-wider font-extrabold ${
-                      table.status === "available" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-gold-500/10 text-gold-400 border border-gold-500/20"
+                    <h2 className="text-xl font-black text-neutral-800">Table {table.number}</h2>
+                    <span className={`text-[9px] px-2.5 py-1 rounded-full uppercase tracking-wider font-extrabold border ${
+                      table.status === "available" 
+                        ? "bg-green-50 text-green-700 border-green-200" 
+                        : "bg-amber-50 text-amber-700 border-amber-200"
                     }`}>
                       {table.status}
                     </span>
                   </div>
+                  
                   {qrImageUrl ? (
-                    <div className="mt-4 rounded-2xl bg-white p-4 flex items-center justify-center shadow-inner">
+                    <div className="mt-4 rounded-2xl bg-neutral-50 p-4 border border-neutral-100/50 flex items-center justify-center">
                       <img className="h-44 w-44 object-contain" src={qrImageUrl} alt={`QR for table ${table.number}`} />
                     </div>
                   ) : (
-                    <div className="mt-4 h-44 rounded-2xl bg-white/5 flex items-center justify-center text-white/40 border border-dashed border-white/10">
+                    <div className="mt-4 h-44 rounded-2xl bg-neutral-50 flex items-center justify-center text-neutral-400 border border-dashed border-neutral-200 text-xs">
                       No QR image found
                     </div>
                   )}
-                  <p className="mt-4 truncate text-xs text-white/45 font-mono">URL: {qrLinkUrl}</p>
+                  <p className="mt-4 truncate text-[9px] text-neutral-400 font-mono font-bold">URL: {qrLinkUrl}</p>
                 </div>
                 
                 <div className="mt-5 flex gap-2">
-                  <Button onClick={() => handleDownload(table)} variant="secondary" className="flex-1 text-xs py-2 px-1">
-                    <FaDownload /> Download
-                  </Button>
-                  <Button onClick={() => handlePrint(table)} variant="secondary" className="flex-1 text-xs py-2 px-1 border-gold-400/40 text-gold-400 hover:bg-gold-400/10">
-                    <FaPrint /> Print
-                  </Button>
+                  <button 
+                    onClick={() => handleDownload(table)} 
+                    className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-wider py-2.5 px-1 bg-neutral-50 hover:bg-neutral-100/50 text-neutral-600 border border-neutral-200 shadow-sm transition-colors"
+                  >
+                    <FaDownload className="mr-1 inline" /> Download
+                  </button>
+                  <button 
+                    onClick={() => handlePrint(table)} 
+                    className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-wider py-2.5 px-1 bg-red-50 border border-red-100 text-red-600 hover:bg-red-100 transition-colors"
+                  >
+                    <FaPrint className="mr-1 inline" /> Print
+                  </button>
                 </div>
               </article>
             );
           })}
           {tables.length === 0 && (
-            <p className="mt-4 text-white/55 col-span-full text-center py-10">No tables found. Please click Generate Tables above to add tables.</p>
+            <div className="text-center col-span-full border border-dashed border-neutral-200 rounded-3xl p-16 bg-white space-y-4">
+              <h3 className="text-lg font-black text-neutral-800">No tables found</h3>
+              <p className="text-xs text-neutral-400 max-w-xs mx-auto">
+                No table QR codes generated yet. Please choose the count and generate them using the form above.
+              </p>
+            </div>
           )}
         </div>
       </div>
+
     </section>
   );
 }

@@ -70,8 +70,8 @@ export default function OrderCard({ order, onStatusChange }) {
         );
       default:
         return (
-          <div className="w-full flex items-center justify-center gap-2 py-3.5 text-sm font-bold text-white/45 bg-white/5 rounded-2xl border border-white/10">
-            <FaCheckCircle className="text-emerald-400" /> Finished
+          <div className="w-full flex items-center justify-center gap-2 py-3.5 text-sm font-bold text-neutral-400 bg-neutral-50 rounded-2xl border border-neutral-200">
+            <FaCheckCircle className="text-emerald-500" /> Finished
           </div>
         );
     }
@@ -82,29 +82,29 @@ export default function OrderCard({ order, onStatusChange }) {
       layout 
       initial={{ opacity: 0, y: 14 }} 
       animate={{ opacity: 1, y: 0 }} 
-      className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-xl backdrop-blur-md"
+      className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm"
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-gold-400 font-semibold">Table {order.tableNumber}</p>
-          <h2 className="mt-1 text-2xl font-black text-white">Order #{String(order._id).slice(-6)}</h2>
+          <p className="text-xs uppercase tracking-[0.24em] text-red-600 font-black">Table {order.tableNumber}</p>
+          <h2 className="mt-1 text-2xl font-black text-neutral-800">Order #{String(order._id).slice(-6)}</h2>
         </div>
         <StatusBadge status={order.status} />
       </div>
       
-      <div className="mt-4 flex items-center gap-2 text-sm text-white/55">
-        <FaClock className="text-gold-400" />
+      <div className="mt-4 flex items-center gap-2 text-sm text-neutral-500 font-semibold">
+        <FaClock className="text-red-600" />
         {new Date(order.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
       </div>
 
       <div className="mt-5 space-y-3">
         {order.items?.map((item, idx) => (
-          <div key={`${order._id}-${item.name}-${item.portionType || idx}`} className="flex items-center justify-between rounded-2xl bg-black/40 border border-white/5 p-4">
+          <div key={`${order._id}-${item.name}-${item.portionType || idx}`} className="flex items-center justify-between rounded-2xl bg-neutral-50 border border-neutral-100 p-4">
             <div className="flex items-center gap-3">
-              <FaUtensils className="text-gold-400" />
-              <span className="font-semibold text-white">{item.name} {item.portionType && item.portionType !== 'single' ? `(${item.portionType})` : ''}</span>
+              <FaUtensils className="text-red-600" />
+              <span className="font-bold text-neutral-800">{item.name} {item.portionType && item.portionType !== 'single' ? `(${item.portionType})` : ''}</span>
             </div>
-            <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/90">x{item.quantity}</span>
+            <span className="rounded-full bg-neutral-200/50 px-3 py-1 text-xs font-black text-neutral-700">x{item.quantity}</span>
           </div>
         ))}
       </div>
