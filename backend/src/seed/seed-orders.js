@@ -32,8 +32,8 @@ const seedOrders = async () => {
   ];
 
   const subtotal = (biryaniPrice * 2) + (coffeePrice * 2);
-  const tax = Number((subtotal * 0.08).toFixed(2));
-  const total = subtotal + tax;
+  const tax = 0;
+  const total = subtotal;
 
   await Order.create({
     table: table._id,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { FaUtensils, FaSyncAlt, FaSignOutAlt, FaConciergeBell, FaCheck, FaBan, FaCheckCircle, FaTrash, FaPlus, FaBroom } from "react-icons/fa";
+import { FaUtensils, FaSyncAlt, FaSignOutAlt, FaConciergeBell, FaCheck, FaBan, FaCheckCircle, FaTrash, FaPlus, FaBroom, FaPrint } from "react-icons/fa";
 import { getTables, updateTableStatus } from "../../services/tableService";
 import { updateOrderStatus } from "../../services/orderService";
 import { useSocket } from "../../hooks/useSocket";
@@ -91,6 +91,72 @@ export default function WaiterDashboard() {
     } catch (error) {
       toast.error("Failed to update order status");
     }
+  };
+
+  const handlePrintBill = (order) => {
+    if (!order) return;
+    const printWindow = window.open("", "_blank");
+    
+    let itemsText = "";
+    order.items?.forEach((item) => {
+      const name = item.name.padEnd(14).substring(0, 14);
+      const qty = String(item.quantity).padStart(3);
+      const price = `₹${(item.price * item.quantity).toFixed(0)}`.padStart(10);
+      itemsText += `${name} ${qty} ${price}\n`;
+    });
+
+    const subtotalStr = `₹${(order.subtotal || 0).toFixed(0)}`;
+    const discountStr = `₹${(order.discount || 0).toFixed(0)}`;
+    const grandTotalStr = `₹${(order.total || 0).toFixed(0)}`;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Receipt - Table ${order.tableNumber}</title>
+          <style>
+            body {
+              font-family: 'Courier New', Courier, monospace;
+              padding: 20px;
+              max-width: 300px;
+              margin: 0 auto;
+              color: #000;
+              background-color: #fff;
+            }
+            pre {
+              margin: 0;
+              white-space: pre-wrap;
+              font-size: 14px;
+              line-height: 1.2;
+            }
+            h2 {
+              text-align: center;
+              margin: 0 0 10px 0;
+              font-size: 16px;
+            }
+            .center {
+              text-align: center;
+            }
+          </style>
+        </head>
+        <body onload="window.print(); window.close();">
+          <h2>CAFE RECEIPT</h2>
+          <div class="center" style="font-size: 12px; margin-bottom: 10px;">
+            Table: ${order.tableNumber}<br>
+            Date: ${new Date(order.createdAt).toLocaleString()}<br>
+            Order ID: ${order._id.substring(0, 8)}...
+          </div>
+          <pre>
+Item Name     Qty     Price
+---------------------------
+${itemsText}---------------------------
+Subtotal       ${subtotalStr.padStart(12)}
+Discount       ${discountStr.padStart(12)}
+Grand Total    ${grandTotalStr.padStart(12)}
+          </pre>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
@@ -237,6 +303,16 @@ export default function WaiterDashboard() {
                           </div>
                         ))}
                       </div>
+                    </div>
+
+                    {/* Print Bill Action */}
+                    <div className="border-t border-white/10 pt-4">
+                      <button
+                        onClick={() => handlePrintBill(selectedTable.activeOrder)}
+                        className="w-full flex items-center justify-center gap-2 rounded-2xl border border-gold-400/30 bg-gold-400/5 py-3 text-sm font-bold text-gold-400 hover:bg-gold-400/10 transition-all active:scale-95"
+                      >
+                        <FaPrint /> Print Bill / Receipt
+                      </button>
                     </div>
 
                     {/* Quick billing status actions */}

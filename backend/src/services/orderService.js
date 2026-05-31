@@ -3,7 +3,7 @@ const Table = require("../models/Table");
 const MenuItem = require("../models/MenuItem");
 const Sale = require("../models/Sale");
 
-const TAX_RATE = 0.08;
+const TAX_RATE = 0;
 
 const getItemPrice = (menuItem, portionType = "single") => {
   if (menuItem.pricingType === "half-full") {
@@ -67,8 +67,8 @@ const createOrder = async ({ tableId, tableNumber, token, items }) => {
   // Inventory system removed — no stock validation performed here
 
   const subtotal = enrichedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const tax = Number((subtotal * TAX_RATE).toFixed(2));
-  const total = Number((subtotal + tax).toFixed(2));
+  const tax = 0;
+  const total = subtotal;
 
   const order = await Order.create({
     table: table._id,
@@ -102,7 +102,7 @@ const completeOrder = async (order) => {
   // Record sale — idempotent guard via Sale lookup
   const existing = await Sale.findOne({ order: order._id });
   if (!existing) {
-    await Sale.create({ order: order._id, amount: order.total });
+    await Sale.create({ order: order._id, amount: order.subtotal });
   }
   return order;
 };

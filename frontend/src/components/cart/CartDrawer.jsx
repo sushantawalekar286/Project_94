@@ -6,8 +6,8 @@ import { Button } from '../common/Button';
 
 const CartDrawer = ({ items = [], onRemove, onQuantityChange, onCheckout, open = true }) => {
   const total = items.reduce((acc, item) => acc + (item.price * (item.quantity || 1)), 0).toFixed(2);
-  const tax = (total * 0.1).toFixed(2);
-  const grandTotal = (parseFloat(total) + parseFloat(tax)).toFixed(2);
+  const tax = "0.00";
+  const grandTotal = total;
 
   return (
     <motion.div
@@ -55,12 +55,8 @@ const CartDrawer = ({ items = [], onRemove, onQuantityChange, onCheckout, open =
             <span>Subtotal:</span>
             <span>${total}</span>
           </div>
-          <div className="flex justify-between text-dark-300">
-            <span>Tax (10%):</span>
-            <span>${tax}</span>
-          </div>
           <div className="flex justify-between text-white font-bold text-lg pt-3 border-t border-dark-700">
-            <span>Total:</span>
+            <span>Grand Total:</span>
             <span>${grandTotal}</span>
           </div>
           <Button

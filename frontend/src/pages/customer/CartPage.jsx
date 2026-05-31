@@ -11,8 +11,8 @@ export default function CartPage() {
   const { items, total, tableSession, updateQuantity, removeItem, clearCart } = useCart();
   const [placing, setPlacing] = useState(false);
   const navigate = useNavigate();
-  const tax = Number((total * 0.08).toFixed(2));
-  const grandTotal = Number((total + tax).toFixed(2));
+  const tax = 0;
+  const grandTotal = Number(total.toFixed(2));
 
   const checkout = async () => {
     if (!items.length) return toast.error("Your cart is empty");
@@ -97,11 +97,10 @@ export default function CartPage() {
             <div className="flex justify-between text-white/65"><span>Table</span><span className="font-bold text-white">{tableSession.tableNumber}</span></div>
             <div className="flex justify-between text-white/65"><span>Items</span><span>{items.length}</span></div>
             <div className="flex justify-between text-white/65"><span>Subtotal</span><span>₹{total.toFixed(2)}</span></div>
-            <div className="flex justify-between text-white/65"><span>Tax</span><span>₹{tax.toFixed(2)}</span></div>
           </div>
           <div className="my-5 h-px bg-white/10" />
           <div className="flex items-center justify-between text-2xl font-black">
-            <span>Total</span>
+            <span>Grand Total</span>
             <motion.span key={grandTotal} initial={{ scale: 0.85 }} animate={{ scale: 1 }}>₹{grandTotal.toFixed(2)}</motion.span>
           </div>
           <Button className="mt-6 w-full" loading={placing} onClick={checkout}>Place Order</Button>

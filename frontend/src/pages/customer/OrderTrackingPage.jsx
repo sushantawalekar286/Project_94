@@ -229,12 +229,14 @@ export default function OrderTrackingPage() {
                   <span>Subtotal</span>
                   <span>₹{order.subtotal?.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Tax (8%)</span>
-                  <span>₹{order.tax?.toFixed(2)}</span>
-                </div>
+                {order.discount > 0 && (
+                  <div className="flex justify-between">
+                    <span>Discount</span>
+                    <span>-₹{order.discount?.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-base font-black text-white pt-2 border-t border-white/5">
-                  <span>Total Paid</span>
+                  <span>Grand Total</span>
                   <span className="text-gold-400">₹{order.total?.toFixed(2)}</span>
                 </div>
               </div>
