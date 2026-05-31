@@ -29,7 +29,7 @@ const MenuItem = require("../models/MenuItem");
 const QRCode = require("../models/QRCode");
 
 const MONGODB_URI = process.env.MONGODB_URI;
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+const CLIENT_URL = process.env.CLIENT_URL || "https://project-94-two.vercel.app";
 
 if (require.main === module && !MONGODB_URI) {
   throw new Error("MONGODB_URI environment variable is required");
@@ -88,7 +88,7 @@ const MENU_ITEMS = [
   { name: "Mango Lassi", category: "Beverages", pricingType: "single", singlePrice: 100, description: "Mango yogurt drink", prep: 5, spice: 0, veg: true },
 ];
 
-const generateQRCode = require("../utils/generateQRCode");
+const { generateForTable } = require("../services/qrService");
 
 async function seedData() {
   try {
@@ -191,6 +191,7 @@ async function seedData() {
         
         const table = {
           number: i,
+          tableNumber: i,
           token,
           status: "available",
           maxCapacity: i <= 10 ? 2 : i <= 30 ? 4 : 6,
@@ -213,33 +214,15 @@ async function seedData() {
     if (qrCount === 0) {
       if (tables.length > 0) {
         console.log("📱 Generating QR codes...");
-        const qrCodesData = [];
         for (const table of tables) {
-          const baseUrl = CLIENT_URL.replace(/\/$/, "");
-          const qrValue = `${baseUrl}/scan?table=${table.number}&token=${encodeURIComponent(table.token)}&qrId=QR-TABLE-${table.number}&scannerId=SCANNER-T${table.number}`;
-          
           try {
-            const qrDataUrl = await generateQRCode(qrValue);
-            
-            const qrCode = {
-              table: table._id,
-              token: table.token,
-              qrDataUrl,
-              scannerId: table.scannerId,
-              qrId: table.qrId,
-              qrValue
-            };
-            qrCodesData.push(qrCode);
+            await generateForTable(table, CLIENT_URL);
+            seededQRCodesCount++;
           } catch (error) {
             console.warn(`⚠️  Failed to generate QR for table ${table.number}:`, error.message);
           }
         }
-
-        if (qrCodesData.length > 0) {
-          await QRCode.insertMany(qrCodesData);
-          seededQRCodesCount = qrCodesData.length;
-          console.log(`✅ Generated QR codes for ${qrCodesData.length} tables`);
-        }
+        console.log(`✅ Generated QR codes for ${seededQRCodesCount} tables`);
       } else {
         console.warn("⚠️  Skipping QR codes: No tables found/seeded.");
       }

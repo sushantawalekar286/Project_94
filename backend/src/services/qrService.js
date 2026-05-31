@@ -13,20 +13,15 @@ const generateQRCodeImage = require("../utils/generateQRCode");
  * 5. QR value uses encodeURIComponent for the token to handle special chars.
  */
 
-const buildQRValue = (table, clientUrl) => {
-  const scannerId = `SCANNER-T${table.number}`;
-  const qrId = `QR-${table._id}`;
-  const baseUrl = clientUrl.replace(/\/$/, "");
-  // Canonical production URL for customer table entrypoint
-  return `${baseUrl}/table/${table.number}?scannerId=${encodeURIComponent(scannerId)}&qrId=${encodeURIComponent(qrId)}&token=${encodeURIComponent(table.token)}`;
+const buildQRValue = (table) => {
+  const frontendUrl = (process.env.FRONTEND_URL || "https://project-94-two.vercel.app").replace(/\/$/, "");
+  const tableNumber = table.tableNumber || table.number;
+  const qrUrl = `${frontendUrl}/table/${tableNumber}`;
+  return qrUrl;
 };
 
 const generateForTable = async (table, clientUrl) => {
-  if (!clientUrl) {
-    throw new Error("CLIENT_URL environment variable is not set. Cannot generate QR codes.");
-  }
-
-  const qrValue = buildQRValue(table, clientUrl);
+  const qrValue = buildQRValue(table);
   // Generate higher quality QR with error correction
   const qrDataUrl = await generateQRCodeImage(qrValue, {
     errorCorrectionLevel: "H",
@@ -51,8 +46,10 @@ const generateForTable = async (table, clientUrl) => {
     { upsert: true, new: true }
   );
 
-  // Sync qrCodeUrl and identifiers back to the Table document
-  table.qrCodeUrl = qrDataUrl;
+  // Sync fields back to the Table document
+  table.qrCodeUrl = qrValue;   // Canonical URL, e.g. https://mydomain.com/table/1
+  table.qrUrl = qrValue;       // Canonical URL (standard field)
+  table.qrImage = qrDataUrl;   // Base64 encoded PNG image for displaying
   table.scannerId = scannerId;
   table.qrId = qrId;
   table.tableNumber = table.number;
@@ -62,9 +59,6 @@ const generateForTable = async (table, clientUrl) => {
 };
 
 const generateForAllTables = async (clientUrl) => {
-  if (!clientUrl) {
-    throw new Error("CLIENT_URL environment variable is not set. Cannot generate QR codes.");
-  }
   const tables = await Table.find({ isActive: true }).sort({ number: 1 });
   if (!tables.length) throw new Error("No active tables found. Run seed-tables first.");
 

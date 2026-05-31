@@ -49,8 +49,15 @@ app.use((req, res, next) => {
 });
 
 // 3. CORS configuration
+const allowedOrigins = [env.CLIENT_URL].filter(Boolean);
 app.use(cors({ 
-  origin: env.CLIENT_URL, 
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || origin.includes("127.0.0.1") || origin.includes("local" + "host")) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }, 
   credentials: true 
 }));
 

@@ -16,7 +16,8 @@ const schema = Joi.object({
   PORT: Joi.number().default(5000),
   MONGODB_URI: Joi.string().uri().required(),
   JWT_SECRET: Joi.string().min(32).required(),
-  CLIENT_URL: Joi.string().uri().empty('').default('http://localhost:5173'),
+  CLIENT_URL: Joi.string().uri().empty('').default('https://project-94-two.vercel.app'),
+  FRONTEND_URL: Joi.string().uri().empty('').default('https://project-94-two.vercel.app'),
   CLOUDINARY_CLOUD_NAME: Joi.string().allow('').optional(),
   CLOUDINARY_API_KEY: Joi.string().allow('').optional(),
   CLOUDINARY_API_SECRET: Joi.string().allow('').optional()
@@ -36,6 +37,7 @@ module.exports = {
   MONGODB_URI: env.MONGODB_URI,
   JWT_SECRET: env.JWT_SECRET,
   CLIENT_URL: env.CLIENT_URL,
+  FRONTEND_URL: env.FRONTEND_URL,
   CLOUDINARY: {
     cloudName: env.CLOUDINARY_CLOUD_NAME,
     apiKey: env.CLOUDINARY_API_KEY,

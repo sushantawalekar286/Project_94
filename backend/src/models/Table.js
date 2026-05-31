@@ -10,6 +10,23 @@ const tableSchema = new mongoose.Schema(
       min: 1,
       max: 100
     },
+    tableNumber: {
+      type: Number,
+      required: true,
+      unique: true
+    },
+    qrCodeUrl: {
+      type: String,
+      default: ""
+    },
+    qrUrl: {
+      type: String,
+      default: ""
+    },
+    qrImage: {
+      type: String,
+      default: ""
+    },
     token: { 
       type: String, 
       required: true, 

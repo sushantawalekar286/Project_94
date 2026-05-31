@@ -17,7 +17,7 @@ const seedTables = async () => {
     const token = existing?.token || crypto.randomBytes(8).toString("hex");
     const table = await Table.findOneAndUpdate(
       { number: i },
-      { number: i, token, isActive: true },
+      { number: i, tableNumber: i, token, isActive: true },
       { upsert: true, new: true }
     );
     // Generate QR automatically (this creates the QRCode model record and links the URL)

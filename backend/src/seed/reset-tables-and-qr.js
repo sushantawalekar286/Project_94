@@ -27,6 +27,7 @@ async function main() {
 
       const freshTables = Array.from({ length: TABLE_COUNT }, (_, index) => ({
         number: index + 1,
+        tableNumber: index + 1,
         token: crypto.randomBytes(8).toString("hex"),
         isActive: true
       }));

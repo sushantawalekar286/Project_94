@@ -23,8 +23,8 @@ const start = async () => {
     
     // Start listening
     server.listen(PORT, () => {
-      logger.info(`🚀 Server running on http://localhost:${PORT}`);
-      logger.info(`📍 API: http://localhost:${PORT}/api`);
+      logger.info(`🚀 Server running on http://127.0.0.1:${PORT}`);
+      logger.info(`📍 API: http://127.0.0.1:${PORT}/api`);
       logger.info(`🔌 Socket.IO enabled`);
       logger.info(`🌐 Client URL: ${env.CLIENT_URL}`);
       logger.info(`✅ Environment: ${env.NODE_ENV}`);

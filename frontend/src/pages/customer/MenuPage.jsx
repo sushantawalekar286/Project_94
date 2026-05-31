@@ -52,12 +52,56 @@ const MenuSkeleton = () => (
   </div>
 );
 
+const SUPER_CATEGORIES = {
+  "Cafe Menu": {
+    title: "Cafe Menu",
+    description: "Espresso, mocktails, burgers, pizzas, and light bites",
+    image: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=600&q=80",
+    categories: [
+      "Nuggets", "Burgers", "Fries", "Rolls", "Ice Cream", 
+      "Cold Coffee", "Hot Coffee", "Milkshakes", "Sandwiches", 
+      "Toasts", "Mocktails", "Special Pizzas", "Veg Pizzas", "Maggie",
+      "Pizza", "Burgers", "Fries", "Beverages"
+    ]
+  },
+  "Chinese Menu": {
+    title: "Chinese Menu",
+    description: "Delectable noodles, fried rice, momos, soups, and appetizers",
+    image: "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=600&q=80",
+    categories: [
+      "Momos", "Paneer Course (Rice)", "Paneer Course (Noodles)", 
+      "Chicken Special", "Veg Soups", "Veg Chopsuey", "Non-Veg Soups", 
+      "Non-Veg Chopsuey", "Non-Veg Course (Rice)", "Non-Veg Course (Noodles)"
+    ]
+  }
+};
+
+const getSuperCategoryForItem = (categoryName) => {
+  if (!categoryName) return "Cafe Menu";
+  for (const [key, value] of Object.entries(SUPER_CATEGORIES)) {
+    if (value.categories.some(cat => cat.toLowerCase() === categoryName.toLowerCase())) {
+      return key;
+    }
+  }
+  
+  // Smart fallback substring checking
+  const name = categoryName.toLowerCase();
+  if (name.includes("momo") || name.includes("soup") || name.includes("chopsuey") || name.includes("noodle") || name.includes("rice") || name.includes("chicken")) {
+    return "Chinese Menu";
+  }
+  
+  return "Cafe Menu"; // Default fallback
+};
+
 export default function MenuPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
+  const [selectedMenuCategory, setSelectedMenuCategory] = useState(
+    sessionStorage.getItem("selectedMenuCategory") || ""
+  );
   const { tableId } = useParams();
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -124,17 +168,75 @@ export default function MenuPage() {
     }
   }, [tableId, tableParam, tableSession.tableNumber, location.state, navigate]);
 
-  const categories = useMemo(() => {
-    const names = [...new Set(items.map((item) => item.category?.name).filter(Boolean))];
-    const baseCategories = names.length ? names : fallbackCategories;
-    return [{ name: "All" }, ...baseCategories.map((name) => ({ name }))];
-  }, [items]);
+  // Filter menu items based on the selected supercategory
+  const menuItemsFilteredBySuper = useMemo(() => {
+    return items.filter(item => {
+      const superCat = getSuperCategoryForItem(item.category?.name);
+      return superCat === selectedMenuCategory;
+    });
+  }, [items, selectedMenuCategory]);
 
-  const filtered = items.filter((item) => {
+  const categories = useMemo(() => {
+    const names = [...new Set(menuItemsFilteredBySuper.map((item) => item.category?.name).filter(Boolean))];
+    const baseCategories = names;
+    return [{ name: "All" }, ...baseCategories.map((name) => ({ name }))];
+  }, [menuItemsFilteredBySuper]);
+
+  const filtered = menuItemsFilteredBySuper.filter((item) => {
     const matchesCategory = category === "All" || item.category?.name === category;
     const matchesSearch = `${item.name} ${item.description}`.toLowerCase().includes(search.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
+  if (!selectedMenuCategory) {
+    return (
+      <section className="min-h-screen bg-black px-4 py-16 text-white sm:px-6 lg:px-10 flex flex-col items-center justify-center">
+        <div className="mx-auto max-w-4xl text-center">
+          <p className="text-xs uppercase tracking-[0.3em] text-gold-400 font-bold mb-3 animate-pulse">Welcome to Aurum Bistro</p>
+          <h1 className="text-4xl font-black sm:text-6xl mb-6 bg-gradient-to-r from-white via-white/80 to-gold-400 bg-clip-text text-transparent">
+            Select Your Menu
+          </h1>
+          <p className="text-white/60 max-w-lg mx-auto text-sm sm:text-base mb-12">
+            Please choose a menu category to view our freshly prepared selections for Table {tableSession.tableNumber || tableId || 1}.
+          </p>
+
+          <div className="grid gap-6 sm:grid-cols-2">
+            {Object.entries(SUPER_CATEGORIES).map(([key, config]) => (
+              <motion.div
+                key={key}
+                whileHover={{ scale: 1.03, y: -4 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  sessionStorage.setItem("selectedMenuCategory", key);
+                  setSelectedMenuCategory(key);
+                }}
+                className="relative cursor-pointer overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-left shadow-2xl hover:border-gold-400/40 hover:shadow-glow transition-all duration-300 group h-80 flex flex-col justify-end"
+              >
+                {/* Background image overlay */}
+                <div 
+                  className="absolute inset-0 bg-cover bg-center opacity-30 group-hover:opacity-45 transition-opacity duration-300"
+                  style={{ backgroundImage: `url(${config.image})` }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+
+                <div className="relative z-10">
+                  <h2 className="text-2xl font-black text-white group-hover:text-gold-400 transition-colors">
+                    {config.title}
+                  </h2>
+                  <p className="mt-2 text-sm text-white/70">
+                    {config.description}
+                  </p>
+                  <div className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-gold-400 group-hover:translate-x-1 transition-transform">
+                    View Menu &rarr;
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="min-h-screen bg-black px-4 pb-28 pt-5 text-white sm:px-6 lg:px-10">
@@ -143,19 +245,36 @@ export default function MenuPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-gold-400">Aurum Bistro</p>
-              <h1 className="text-2xl font-black sm:text-4xl">Digital Menu</h1>
-            </div>
-            <button
-              onClick={() => navigate(`/customer/cart?table=${tableSession.tableNumber}`)}
-              className="relative grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-primary-500 to-gold-500 text-white shadow-glow"
-            >
-              <FaShoppingBag />
-              {cartItems.length > 0 && (
-                <span className="absolute -right-1 -top-1 grid h-6 w-6 place-items-center rounded-full bg-white text-xs font-black text-black">
-                  {cartItems.length}
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-black sm:text-4xl">Digital Menu</h1>
+                <span className="rounded-full bg-gold-400/10 border border-gold-400/20 px-3 py-1 text-xs font-black text-gold-400 uppercase tracking-wider">
+                  {selectedMenuCategory.replace(" Menu", "")}
                 </span>
-              )}
-            </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  sessionStorage.removeItem("selectedMenuCategory");
+                  setSelectedMenuCategory("");
+                  setCategory("All");
+                }}
+                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-black text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                Switch Menu
+              </button>
+              <button
+                onClick={() => navigate(`/customer/cart?table=${tableSession.tableNumber}`)}
+                className="relative grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-primary-500 to-gold-500 text-white shadow-glow"
+              >
+                <FaShoppingBag />
+                {cartItems.length > 0 && (
+                  <span className="absolute -right-1 -top-1 grid h-6 w-6 place-items-center rounded-full bg-white text-xs font-black text-black">
+                    {cartItems.length}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <label className="flex flex-1 items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
@@ -164,7 +283,7 @@ export default function MenuPage() {
                 className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/45"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search pizza, burgers, fries, beverages"
+                placeholder="Search pizza, burgers, fries, beverages, noodles, soups..."
               />
             </label>
             <div className="rounded-2xl border border-gold-400/20 bg-gold-400/10 px-4 py-3 text-sm font-bold text-gold-400">
