@@ -9,6 +9,7 @@
     "seed-admin": "cd backend && node src/seed/seed-admin.js",
     "seed-all": "cd backend && node src/seed/seed-all.js",
     "cleanup": "cd backend && node src/seed/cleanup.js",
+    "reset-business": "cd backend && npm run reset:business",
     "start": "cd backend && npm install && node src/server.js"
   },
   "devDependencies": {

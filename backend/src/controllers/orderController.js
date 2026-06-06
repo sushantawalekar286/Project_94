@@ -172,4 +172,13 @@ const getActiveOrderByTable = async (req, res, next) => {
   }
 };
 
-module.exports = { listOrders, placeOrder, updateOrderStatus, getOrderById, getActiveOrderByTable };
+const getCompletedOrdersCount = async (req, res, next) => {
+  try {
+    const count = await Order.countDocuments({ status: { $in: ["Completed", "Paid"] } });
+    res.json({ success: true, count });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { listOrders, placeOrder, updateOrderStatus, getOrderById, getActiveOrderByTable, getCompletedOrdersCount };

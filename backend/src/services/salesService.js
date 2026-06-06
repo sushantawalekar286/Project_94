@@ -67,7 +67,7 @@ const todayStats = async () => {
  */
 const topMenuItems = async (limit = 5) => {
   return Order.aggregate([
-    { $match: { status: { $in: ["Completed", "Served"] } } },
+    { $match: { status: { $in: ["Completed", "Paid"] } } },
     { $unwind: "$items" },
     {
       $group: {

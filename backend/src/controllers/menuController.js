@@ -1,4 +1,5 @@
 const MenuItem = require("../models/MenuItem");
+const Order = require("../models/Order");
 
 /**
  * PHASE 2 & 7 — Fixed menuController
@@ -13,11 +14,44 @@ const MenuItem = require("../models/MenuItem");
 
 const listMenu = async (req, res, next) => {
   try {
-    const items = await MenuItem.find({})
-      .populate("category", "name isActive")
-      .lean()
-      .sort({ createdAt: -1 });
-    res.json(items);
+    const [items, stats] = await Promise.all([
+      MenuItem.find({})
+        .populate("category", "name isActive")
+        .lean()
+        .sort({ createdAt: -1 }),
+      Order.aggregate([
+        { $match: { status: { $in: ["Completed", "Paid"] } } },
+        { $unwind: "$items" },
+        {
+          $group: {
+            _id: "$items.menuItem",
+            totalQuantitySold: { $sum: "$items.quantity" },
+            totalOrders: { $sum: 1 }
+          }
+        }
+      ])
+    ]);
+
+    const statsMap = {};
+    stats.forEach(s => {
+      if (s._id) {
+        statsMap[s._id.toString()] = {
+          totalQuantitySold: s.totalQuantitySold || 0,
+          totalOrders: s.totalOrders || 0
+        };
+      }
+    });
+
+    const itemsWithStats = items.map(item => {
+      const itemStats = statsMap[item._id.toString()] || { totalQuantitySold: 0, totalOrders: 0 };
+      return {
+        ...item,
+        totalQuantitySold: itemStats.totalQuantitySold,
+        totalOrders: itemStats.totalOrders
+      };
+    });
+
+    res.json(itemsWithStats);
   } catch (error) {
     next(error);
   } finally {

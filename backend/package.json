@@ -9,7 +9,8 @@
     "seed": "node src/seed/seed-all.js",
     "seed:comprehensive": "node src/seed/seed-comprehensive.js",
     "reset:tables": "node src/seed/reset-tables-and-qr.js",
-    "regenerate:qr": "node src/seed/regenerate-qr.js"
+    "regenerate:qr": "node src/seed/regenerate-qr.js",
+    "reset:business": "node src/seed/resetBusinessData.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

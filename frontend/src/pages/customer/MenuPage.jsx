@@ -7,7 +7,7 @@ import { getMenu, getCategories } from "../../services/menuService";
 import { useCart } from "../../hooks/useCart";
 import CategoryList from "../../components/menu/CategoryList";
 import MenuCard from "../../components/menu/MenuCard";
-import { getActiveOrderByTable } from "../../services/orderService";
+import { getActiveOrderByTable, getCompletedOrdersCount } from "../../services/orderService";
 
 const fallbackCategories = ["Pizza", "Burgers", "Fries", "Beverages"];
 const fallbackImages = {
@@ -102,6 +102,7 @@ export default function MenuPage() {
   const [dbCategories, setDbCategories] = useState([]);
   const [showFavoritesModal, setShowFavoritesModal] = useState(false);
   const [favoritesSort, setFavoritesSort] = useState("all-time");
+  const [completedOrdersCount, setCompletedOrdersCount] = useState(0);
   const [selectedMenuCategory, setSelectedMenuCategory] = useState(
     sessionStorage.getItem("selectedMenuCategory") || ""
   );
@@ -156,6 +157,14 @@ export default function MenuPage() {
       })
       .catch(() => setItems(fallbackMenu))
       .finally(() => setLoading(false));
+
+    getCompletedOrdersCount()
+      .then((res) => {
+        setCompletedOrdersCount(res.data?.count || 0);
+      })
+      .catch((err) => {
+        console.error("Error fetching completed orders count:", err);
+      });
   }, []);
 
   useEffect(() => {
@@ -218,6 +227,7 @@ export default function MenuPage() {
   const frequentlyOrdered = useMemo(() => {
     return [...menuItemsFilteredBySuper]
       .filter((item) => !vegOnly || item.vegetarian === true)
+      .filter((item) => Number(item.totalQuantitySold || 0) > 0)
       .sort((a, b) => {
         const salesDiff = Number(b.totalQuantitySold || 0) - Number(a.totalQuantitySold || 0);
         if (salesDiff !== 0) return salesDiff;
@@ -229,11 +239,13 @@ export default function MenuPage() {
   }, [menuItemsFilteredBySuper, vegOnly]);
 
   const sortedFavorites = useMemo(() => {
-    let base = [...menuItemsFilteredBySuper].filter(item => !vegOnly || item.vegetarian === true);
+    let base = [...menuItemsFilteredBySuper]
+      .filter(item => !vegOnly || item.vegetarian === true)
+      .filter((item) => Number(item.totalQuantitySold || 0) > 0);
     if (favoritesSort === "today") {
       base.sort((a, b) => Number(b.rating || 4.5) - Number(a.rating || 4.5));
     } else if (favoritesSort === "week") {
-      base.sort((a, b) => (b.name.length % 5) - (a.name.length % 5));
+      base.sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0));
     } else if (favoritesSort === "month") {
       base.sort((a, b) => Number(b.totalOrders || 0) - Number(a.totalOrders || 0));
     } else {
@@ -396,7 +408,7 @@ export default function MenuPage() {
               <div className="flex items-center gap-1.5 mt-2 bg-white/10 backdrop-blur-md px-2.5 py-0.5 rounded-full w-fit">
                 <span className="text-amber-400 text-xs">★</span>
                 <span className="text-[10px] font-black text-amber-300">4.8</span>
-                <span className="text-[10px] font-semibold text-white/70">(2,500+ Orders)</span>
+                <span className="text-[10px] font-semibold text-white/70">({completedOrdersCount} {completedOrdersCount === 1 ? 'Order' : 'Orders'})</span>
               </div>
             </div>
           </div>
@@ -494,74 +506,81 @@ export default function MenuPage() {
             
             {/* Left Side: Main items list (col-span-8) */}
             <div className="lg:col-span-8 space-y-6">
-              
-              {/* Mobile Only: Frequently Ordered Slider */}
-              {frequentlyOrdered.length > 0 && !search && (
+                        {/* Mobile Only: Frequently Ordered Slider */}
+              {!search && (
                 <div className="mt-2 mb-6 lg:hidden">
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-1.5">
                       <span className="text-base font-black">🔥</span>
-                      <h2 className="text-base font-black text-neutral-800 tracking-tight">Most Ordered Today</h2>
+                      <h2 className="text-base font-black text-neutral-850 tracking-tight">Most Ordered Today</h2>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowFavoritesModal(true)}
-                      className="text-xs font-black text-orange-600 cursor-pointer hover:underline bg-transparent border-0"
-                    >
-                      View All &rarr;
-                    </button>
+                    {frequentlyOrdered.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowFavoritesModal(true)}
+                        className="text-xs font-black text-orange-655 cursor-pointer hover:underline bg-transparent border-0"
+                      >
+                        View All &rarr;
+                      </button>
+                    )}
                   </div>
 
-                  <div className="flex gap-3.5 overflow-x-auto pb-3.5 scrollbar-hide select-none">
-                    {frequentlyOrdered.map((item) => {
-                      const itemPrice = item.pricingType === "half-full" ? item.fullPrice ?? item.price : item.singlePrice ?? item.price;
-                      const orderCount = item.totalQuantitySold || Math.floor(40 + (item.name.length % 7) * 20);
-                      return (
-                        <div
-                          key={`freq-mob-${item._id}`}
-                          onClick={() => {
-                            const catName = item.category?.name;
-                            if (catName) {
-                              setCategory(catName);
-                              setTimeout(() => {
-                                const el = document.getElementById(`item-${item._id}`);
-                                if (el) {
-                                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                  el.classList.add("bg-orange-50");
-                                  setTimeout(() => el.classList.remove("bg-orange-50"), 1500);
-                                }
-                              }, 100);
-                            }
-                          }}
-                          className="w-36 flex-shrink-0 bg-white border border-neutral-100 rounded-3xl p-2 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col justify-between"
-                        >
-                          <div>
-                            <div className="w-full h-24 rounded-2xl overflow-hidden bg-neutral-50 relative">
-                              <img
-                                src={item.imageUrl || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=200&q=80"}
-                                alt={item.name}
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                              />
+                  {frequentlyOrdered.length > 0 ? (
+                    <div className="flex gap-3.5 overflow-x-auto pb-3.5 scrollbar-hide select-none">
+                      {frequentlyOrdered.map((item) => {
+                        const itemPrice = item.pricingType === "half-full" ? item.fullPrice ?? item.price : item.singlePrice ?? item.price;
+                        const orderCount = item.totalQuantitySold || 0;
+                        return (
+                          <div
+                            key={`freq-mob-${item._id}`}
+                            onClick={() => {
+                              const catName = item.category?.name;
+                              if (catName) {
+                                setCategory(catName);
+                                setTimeout(() => {
+                                  const el = document.getElementById(`item-${item._id}`);
+                                  if (el) {
+                                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    el.classList.add("bg-orange-50");
+                                    setTimeout(() => el.classList.remove("bg-orange-50"), 1500);
+                                  }
+                                }, 100);
+                              }
+                            }}
+                            className="w-36 flex-shrink-0 bg-white border border-neutral-100 rounded-3xl p-2 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col justify-between"
+                          >
+                            <div>
+                              <div className="w-full h-24 rounded-2xl overflow-hidden bg-neutral-50 relative">
+                                <img
+                                  src={item.imageUrl || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=200&q=80"}
+                                  alt={item.name}
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                />
+                              </div>
+                              <p className="text-[11px] font-extrabold text-neutral-800 line-clamp-1 mt-2 px-1 leading-tight">
+                                {item.name}
+                              </p>
+                              <p className="text-[9px] font-bold text-neutral-400 px-1 mt-0.5">
+                                Ordered {orderCount} times
+                              </p>
                             </div>
-                            <p className="text-[11px] font-extrabold text-neutral-800 line-clamp-1 mt-2 px-1 leading-tight">
-                              {item.name}
-                            </p>
-                            <p className="text-[9px] font-bold text-neutral-400 px-1 mt-0.5">
-                              Ordered {orderCount} times
-                            </p>
-                          </div>
-                          <div className="flex justify-between items-center mt-1.5 px-1 pb-1">
-                            <span className="text-xs font-black text-neutral-900 font-mono">₹{itemPrice}</span>
-                            <div className="flex items-center gap-0.5 text-[8px] font-black text-neutral-500 bg-neutral-100 px-1 py-0.5 rounded">
-                              <span className="text-amber-500">★</span>
-                              <span>{item.rating || "4.5"}</span>
+                            <div className="flex justify-between items-center mt-1.5 px-1 pb-1">
+                              <span className="text-xs font-black text-neutral-900 font-mono">₹{itemPrice}</span>
+                              <div className="flex items-center gap-0.5 text-[8px] font-black text-neutral-500 bg-neutral-100 px-1 py-0.5 rounded">
+                                <span className="text-amber-500">★</span>
+                                <span>{item.rating || "4.5"}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-neutral-400 text-xs font-semibold py-4 px-2 bg-white rounded-3xl border border-neutral-100/60 text-center">
+                      No order data available yet
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -633,70 +652,78 @@ export default function MenuPage() {
               </div>
 
               {/* Desktop-Only Favorites Panel */}
-              {frequentlyOrdered.length > 0 && !search && (
+              {!search && (
                 <div className="bg-white border border-neutral-100 rounded-3xl p-5 shadow-sm space-y-4">
                   <div className="flex justify-between items-center border-b border-neutral-50 pb-2">
                     <div className="flex items-center gap-1.5">
                       <span className="text-base font-black">🔥</span>
                       <h3 className="text-sm font-black text-neutral-800 uppercase tracking-wider">Most Ordered</h3>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowFavoritesModal(true)}
-                      className="text-[10px] font-black text-orange-600 hover:underline bg-transparent border-0 uppercase tracking-wider"
-                    >
-                      View All &rarr;
-                    </button>
+                    {frequentlyOrdered.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowFavoritesModal(true)}
+                        className="text-[10px] font-black text-orange-600 hover:underline bg-transparent border-0 uppercase tracking-wider"
+                      >
+                        View All &rarr;
+                      </button>
+                    )}
                   </div>
-                  <div className="space-y-3.5 max-h-[350px] overflow-y-auto pr-1 scrollbar-hide">
-                    {frequentlyOrdered.map((item) => {
-                      const itemPrice = item.pricingType === "half-full" ? item.fullPrice ?? item.price : item.singlePrice ?? item.price;
-                      const orderCount = item.totalQuantitySold || Math.floor(40 + (item.name.length % 7) * 20);
-                      return (
-                        <div
-                          key={`freq-desk-${item._id}`}
-                          onClick={() => {
-                            const catName = item.category?.name;
-                            if (catName) {
-                              setCategory(catName);
-                              setTimeout(() => {
-                                const el = document.getElementById(`item-${item._id}`);
-                                if (el) {
-                                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                  el.classList.add("bg-orange-50");
-                                  setTimeout(() => el.classList.remove("bg-orange-50"), 1500);
-                                }
-                              }, 100);
-                            }
-                          }}
-                          className="flex gap-3 items-center p-2 rounded-2xl border border-neutral-100/60 hover:bg-neutral-50/50 cursor-pointer transition-all duration-200"
-                        >
-                          <div className="w-14 h-14 rounded-xl overflow-hidden bg-neutral-50 flex-shrink-0">
-                            <img
-                              src={item.imageUrl || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80"}
-                              alt={item.name}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-extrabold text-neutral-800 truncate">
-                              {item.name}
-                            </p>
-                            <p className="text-[10px] text-neutral-400 font-bold mt-0.5">
-                              Ordered {orderCount} times
-                            </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs font-black text-neutral-900">₹{itemPrice}</span>
-                              <span className="text-[9px] font-black text-amber-500 bg-amber-50 px-1 rounded flex items-center gap-0.5">
-                                ★ {item.rating || "4.5"}
-                              </span>
+                  {frequentlyOrdered.length > 0 ? (
+                    <div className="space-y-3.5 max-h-[350px] overflow-y-auto pr-1 scrollbar-hide">
+                      {frequentlyOrdered.map((item) => {
+                        const itemPrice = item.pricingType === "half-full" ? item.fullPrice ?? item.price : item.singlePrice ?? item.price;
+                        const orderCount = item.totalQuantitySold || 0;
+                        return (
+                          <div
+                            key={`freq-desk-${item._id}`}
+                            onClick={() => {
+                              const catName = item.category?.name;
+                              if (catName) {
+                                setCategory(catName);
+                                setTimeout(() => {
+                                  const el = document.getElementById(`item-${item._id}`);
+                                  if (el) {
+                                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    el.classList.add("bg-orange-50");
+                                    setTimeout(() => el.classList.remove("bg-orange-50"), 1500);
+                                  }
+                                }, 100);
+                              }
+                            }}
+                            className="flex gap-3 items-center p-2 rounded-2xl border border-neutral-100/60 hover:bg-neutral-50/50 cursor-pointer transition-all duration-200"
+                          >
+                            <div className="w-14 h-14 rounded-xl overflow-hidden bg-neutral-50 flex-shrink-0">
+                              <img
+                                src={item.imageUrl || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80"}
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-extrabold text-neutral-800 truncate">
+                                {item.name}
+                              </p>
+                              <p className="text-[10px] text-neutral-400 font-bold mt-0.5">
+                                Ordered {orderCount} times
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs font-black text-neutral-900">₹{itemPrice}</span>
+                                <span className="text-[9px] font-black text-amber-500 bg-amber-50 px-1 rounded flex items-center gap-0.5">
+                                  ★ {item.rating || "4.5"}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-neutral-400 text-xs font-semibold py-4 text-center">
+                      No order data available yet
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -811,7 +838,7 @@ export default function MenuPage() {
               {/* Favorites Items List */}
               <div className="flex-1 overflow-y-auto p-5 divide-y divide-neutral-100 min-h-[300px]">
                 {sortedFavorites.map((item) => {
-                  const orderCount = item.totalQuantitySold || Math.floor(40 + (item.name.length % 7) * 20);
+                  const orderCount = item.totalQuantitySold || 0;
                   return (
                     <div key={`fav-modal-${item._id}`} className="relative">
                       <div className="absolute top-2 right-2 z-10 rounded-full bg-neutral-100 border border-neutral-200 px-2 py-0.5 text-[8.5px] font-black text-neutral-500 shadow-sm">
@@ -823,7 +850,7 @@ export default function MenuPage() {
                 })}
                 {sortedFavorites.length === 0 && (
                   <div className="py-12 text-center text-neutral-400 text-xs font-semibold">
-                    No favorites matching active dietary preferences.
+                    No order data available yet
                   </div>
                 )}
               </div>
