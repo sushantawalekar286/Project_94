@@ -37,12 +37,12 @@ export default function ScanPage() {
           transition={{ duration: 0.7 }}
           className="max-w-2xl"
         >
-          <div className="mb-7 inline-flex items-center gap-3 rounded-full border border-gold-400/30 bg-white/10 px-4 py-2 text-sm text-gold-400 backdrop-blur-md">
-            <FaQrcode />
-            QR Code Digital Waiter System
+          <div className="mb-7 flex flex-col items-center gap-3.5 text-center sm:items-start sm:text-left">
+            <img src="/logo.png" alt="94 Cafe & Chinese Logo" className="h-24 w-24 rounded-3xl object-cover shadow-2xl border border-white/10" />
+            <span className="text-xs font-black uppercase tracking-[0.2em] text-red-500 mt-2">94 Cafe & Chinese</span>
           </div>
           <h1 className="text-5xl font-black leading-tight sm:text-7xl">
-            Welcome to <span className="text-gold-400">Aurum Bistro</span>
+            Welcome to <span className="text-red-550 text-red-500">94 Cafe & Chinese</span>
           </h1>
           <p className="mt-5 max-w-xl text-lg text-white/75">
             Your table has been detected. Browse the menu, add your favorites, and send the order directly to the chef.

@@ -76,10 +76,13 @@ export default function ChefDashboard() {
 
   return (
     <section className="min-h-screen bg-[#FAF9F6] px-4 py-8 text-neutral-800 sm:px-8">
-      <header className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <p className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-red-600 font-black"><FaFire /> Chef Panel</p>
-          <h1 className="mt-1 text-3xl font-black text-neutral-800 leading-tight tracking-tight">Incoming Orders</h1>
+      <header className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-center border-b border-neutral-200/50 pb-5">
+        <div className="flex items-center gap-3.5">
+          <img src="/logo.png" alt="94 Cafe & Chinese" className="h-16 w-16 rounded-2xl object-cover shadow-md border border-neutral-200 bg-white" />
+          <div>
+            <p className="flex items-center gap-2 text-[10px] uppercase tracking-[0.24em] text-red-600 font-black"><FaFire /> Chef Panel</p>
+            <h1 className="mt-0.5 text-2xl font-black text-neutral-800 leading-none tracking-tight">Incoming Orders</h1>
+          </div>
         </div>
         <div className="flex gap-3">
           <button onClick={refresh} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white hover:bg-neutral-50 px-4 py-3 text-sm font-bold shadow-sm transition">

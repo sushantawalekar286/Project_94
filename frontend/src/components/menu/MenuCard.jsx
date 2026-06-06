@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { motion } from "framer-motion";
 import { useCart } from "../../hooks/useCart";
 import toast from "react-hot-toast";
 
@@ -52,82 +51,12 @@ const MenuCard = ({ item }) => {
   };
 
   return (
-    <div className="flex justify-between items-start gap-4 py-4 px-2 sm:px-3 bg-white hover:bg-neutral-50/50 transition-colors duration-200 border-b border-neutral-100 last:border-b-0">
-      
-      {/* Left Column: Product Info */}
-      <div className="flex-1 flex flex-col min-w-0">
-        
-        {/* Veg/Non-Veg & Spice level badges */}
-        <div className="flex items-center gap-2 mb-1">
-          <span className={`inline-flex items-center justify-center w-3.5 h-3.5 border ${item.vegetarian ? "border-green-600" : "border-red-600"} p-0.5 rounded`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${item.vegetarian ? "bg-green-600" : "bg-red-600"}`}></span>
-          </span>
-          
-          {item.spiceLevel > 1 && (
-            <span className="text-[9px] font-bold text-red-600 bg-red-50 px-1 py-0.5 rounded">
-              🌶️ Spicy x{item.spiceLevel}
-            </span>
-          )}
-          
-          {item.vegan && (
-            <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded">
-              Vegan
-            </span>
-          )}
-        </div>
-
-        {/* Item Name */}
-        <h3 className="text-sm sm:text-base font-black text-neutral-800 leading-tight mb-1 truncate">
-          {item.name}
-        </h3>
-
-        {/* Description */}
-        <p className="text-xs text-neutral-400 font-normal line-clamp-2 mb-2 pr-1 leading-relaxed">
-          {item.description || "Freshly prepared house special using premium ingredients."}
-        </p>
-
-        {/* Price & Rating */}
-        <div className="flex items-center gap-3 mt-auto">
-          <span className="text-sm sm:text-base font-extrabold text-red-600">
-            ₹{displayPrice}
-          </span>
-          
-          <div className="flex items-center gap-0.5 text-[10px] font-bold text-neutral-500 bg-neutral-100 px-1.5 py-0.5 rounded">
-            <span className="text-amber-500">★</span>
-            <span>{item.rating || (4.2 + (item.name.length % 7) / 10).toFixed(1)}</span>
-          </div>
-        </div>
-
-        {/* Half/Full Switcher */}
-        {item.pricingType === "half-full" && (
-          <div className="mt-3 flex gap-2">
-            {[
-              ["half", `Half (₹${item.halfPrice ?? item.price ?? 0})`],
-              ["full", `Full (₹${item.fullPrice ?? item.price ?? 0})`]
-            ].map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                disabled={!isAvailable}
-                onClick={() => isAvailable && setPortionType(value)}
-                className={`rounded-full border px-2.5 py-1 text-[9px] font-bold transition-all duration-150 ${
-                  portionType === value
-                    ? "border-red-600 bg-red-50 text-red-600"
-                    : "border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50"
-                } ${!isAvailable ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-
-      </div>
-
-      {/* Right Column: Image and ADD button overlay */}
-      <div className="relative flex-shrink-0 flex flex-col items-center">
-        
-        {/* Uniform square food image */}
+    <div 
+      id={`item-${item._id}`}
+      className="flex gap-4 py-5 px-1 bg-white hover:bg-neutral-50/20 transition-all duration-200 border-b border-neutral-100 last:border-b-0 items-start"
+    >
+      {/* Left Column: Product Image */}
+      <div className="relative flex-shrink-0">
         <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-neutral-100 border border-neutral-100 shadow-sm relative">
           <img
             src={item.imageUrl || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=300&q=80"}
@@ -144,54 +73,126 @@ const MenuCard = ({ item }) => {
           {/* Availability overlay */}
           {!isAvailable && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
-              <span className="rounded bg-red-600 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
+              <span className="rounded bg-red-650 bg-red-600 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
                 Sold Out
               </span>
             </div>
           )}
         </div>
+      </div>
 
-        {/* Floating Add / Quantity selector Button */}
-        <div className="absolute -bottom-2.5 left-1/2 transform -translate-x-1/2 z-10 w-20">
-          {isAvailable ? (
-            cartItemQuantity > 0 ? (
-              <div className="flex items-center justify-between rounded-xl bg-white border border-red-600 text-red-600 font-extrabold text-sm h-7.5 shadow-md overflow-hidden">
-                <button
-                  type="button"
-                  className="w-6.5 h-full flex items-center justify-center hover:bg-red-50 text-red-600 font-black transition-colors"
-                  onClick={() => handleQuantityChange(cartItemQuantity - 1)}
-                >
-                  -
-                </button>
-                <span className="w-7 text-center font-black text-red-600 select-none text-xs">
-                  {cartItemQuantity}
-                </span>
-                <button
-                  type="button"
-                  className="w-6.5 h-full flex items-center justify-center hover:bg-red-50 text-red-600 font-black transition-colors"
-                  onClick={() => handleQuantityChange(cartItemQuantity + 1)}
-                >
-                  +
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={handleAdd}
-                className="w-full rounded-xl bg-white border border-red-600 text-red-600 font-black text-xs py-1.5 shadow-md hover:bg-red-50 active:scale-95 transition-all duration-150 uppercase tracking-wide text-center"
-              >
-                ADD
-              </button>
-            )
-          ) : (
-            <div className="w-full rounded-xl bg-neutral-200 border border-neutral-300 text-neutral-400 font-bold text-[9px] py-1 shadow-sm text-center uppercase tracking-wide">
-              OUT
-            </div>
+      {/* Right Column: Product Info & Actions */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Veg/Non-Veg & Spice level badges */}
+        <div className="flex items-center gap-2 mb-1">
+          <span className={`inline-flex items-center justify-center w-3.5 h-3.5 border ${item.vegetarian ? "border-green-600" : "border-red-600"} p-0.5 rounded-sm flex-shrink-0`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${item.vegetarian ? "bg-green-600" : "bg-red-600"}`}></span>
+          </span>
+          
+          {item.spiceLevel > 1 && (
+            <span className="text-[9px] font-bold text-red-600 bg-red-50 px-1 py-0.5 rounded">
+              🌶️ Spicy
+            </span>
+          )}
+          
+          {item.vegan && (
+            <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded">
+              Vegan
+            </span>
           )}
         </div>
 
-      </div>
+        {/* Item Name */}
+        <h3 className="text-sm sm:text-base font-extrabold text-neutral-805 text-neutral-800 leading-tight mb-1 truncate">
+          {item.name}
+        </h3>
 
+        {/* Description */}
+        <p className="text-xs text-neutral-400 font-medium line-clamp-2 mb-2 pr-1 leading-relaxed">
+          {item.description || "Chef curated flavors with premium ingredients and a polished restaurant finish."}
+        </p>
+
+        {/* Pricing, Rating, Variants & ADD Button row */}
+        <div className="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Price, Rating & Variants */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-base font-black text-neutral-900">
+                ₹{displayPrice}
+              </span>
+              
+              <div className="flex items-center gap-0.5 text-[9px] font-black text-neutral-500 bg-neutral-100 px-1.5 py-0.5 rounded">
+                <span className="text-amber-500">★</span>
+                <span>{item.rating || (4.2 + (item.name.length % 7) / 10).toFixed(1)}</span>
+              </div>
+            </div>
+
+            {/* Half/Full Switcher */}
+            {item.pricingType === "half-full" && (
+              <div className="flex gap-1.5">
+                {[
+                  ["half", `Half (₹${item.halfPrice ?? item.price ?? 0})`],
+                  ["full", `Full (₹${item.fullPrice ?? item.price ?? 0})`]
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    disabled={!isAvailable}
+                    onClick={() => isAvailable && setPortionType(value)}
+                    className={`rounded-full border px-2.5 py-0.5 text-[8.5px] font-black transition-all duration-150 ${
+                      portionType === value
+                        ? "border-orange-500 bg-orange-50 text-orange-600"
+                        : "border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50"
+                    } ${!isAvailable ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ADD Button selector */}
+          <div className="flex-shrink-0 self-end sm:self-center w-24">
+            {isAvailable ? (
+              cartItemQuantity > 0 ? (
+                <div className="flex items-center justify-between rounded-xl bg-white border border-orange-500 text-orange-600 font-extrabold text-xs h-8 shadow-sm overflow-hidden w-full">
+                  <button
+                    type="button"
+                    className="w-8 h-full flex items-center justify-center hover:bg-orange-50 text-orange-600 font-black transition-colors text-sm"
+                    onClick={() => handleQuantityChange(cartItemQuantity - 1)}
+                  >
+                    -
+                  </button>
+                  <span className="flex-1 text-center font-black text-orange-600 text-xs">
+                    {cartItemQuantity}
+                  </span>
+                  <button
+                    type="button"
+                    className="w-8 h-full flex items-center justify-center hover:bg-orange-50 text-orange-600 font-black transition-colors text-sm"
+                    onClick={() => handleQuantityChange(cartItemQuantity + 1)}
+                  >
+                    +
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleAdd}
+                  className="w-full rounded-xl bg-white border border-orange-500 text-orange-600 font-black text-xs py-1.5 shadow-sm hover:bg-orange-50 active:scale-95 transition-all duration-150 flex items-center justify-center gap-1 uppercase tracking-wider"
+                >
+                  <span>ADD</span>
+                  <span className="text-[10px] text-orange-500 font-bold">+</span>
+                </button>
+              )
+            ) : (
+              <div className="w-full rounded-xl bg-neutral-200 border border-neutral-300 text-neutral-400 font-bold text-[9px] py-1.5 shadow-sm text-center uppercase tracking-wide">
+                SOLD OUT
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

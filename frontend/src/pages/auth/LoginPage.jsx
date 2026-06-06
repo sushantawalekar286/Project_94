@@ -44,17 +44,15 @@ export default function LoginPage() {
       <form onSubmit={submit} className="w-full max-w-md rounded-3xl border border-neutral-200/60 bg-white p-8 shadow-sm space-y-6">
         
         {/* Brand Header & Logo Section */}
-        <div className="flex flex-col items-center text-center pb-4 border-b border-neutral-100">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 to-red-700 text-2xl text-white shadow-md mb-3">
-            <FaUserShield />
-          </div>
-          <span className="text-[10px] font-black uppercase tracking-[0.24em] text-red-600 flex items-center gap-1">
-            Aurum Bistro
-          </span>
-          <h1 className="mt-1 text-2xl font-black text-neutral-800 tracking-tight leading-none">
-            Admin & Staff Login
+        <div className="flex flex-col items-center text-center pb-5 border-b border-neutral-100">
+          <img src="/logo.png" alt="94 Cafe & Chinese Logo" className="h-28 w-28 rounded-[24px] object-cover shadow-lg mb-4 border border-neutral-100" />
+          <h1 className="text-3xl font-black text-neutral-900 tracking-tight leading-tight">
+            94 Cafe & Chinese
           </h1>
-          <p className="mt-2 text-xs text-neutral-400 font-semibold max-w-[280px] leading-normal">
+          <span className="text-[10px] font-black uppercase tracking-[0.24em] text-red-600 mt-2 block">
+            Staff Portal Access
+          </span>
+          <p className="mt-2 text-xs text-neutral-450 font-semibold max-w-[280px] leading-normal">
             Secure JWT access for Admin, Chef, and Waiter dashboards.
           </p>
         </div>
@@ -92,7 +90,7 @@ export default function LoginPage() {
                 value={email} 
                 onChange={(event) => setEmail(event.target.value)} 
                 autoComplete="email" 
-                placeholder="name@company.com" 
+                placeholder="staff@94cafechinese.com" 
                 required 
               />
             </div>

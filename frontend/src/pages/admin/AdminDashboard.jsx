@@ -164,7 +164,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <header className="mb-8">
         <p className="text-xs uppercase tracking-[0.24em] text-red-600 font-black">
-          Bistro Management Portal
+          94 Cafe & Chinese Portal
         </p>
         <h1 className="mt-1 text-3xl font-black text-neutral-800 leading-tight tracking-tight">
           Admin Overview

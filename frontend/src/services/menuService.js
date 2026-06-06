@@ -7,3 +7,5 @@ export const updateMenuItemAvailability = (id, isAvailable) => api.patch(`/menu/
 export const deleteMenuItem = (id) => api.delete(`/menu/${id}`);
 export const getCategories = () => api.get("/categories");
 export const createCategory = (payload) => api.post("/categories", payload);
+export const updateCategory = (id, payload) => api.put(`/categories/${id}`, payload);
+export const deleteCategory = (id) => api.delete(`/categories/${id}`);

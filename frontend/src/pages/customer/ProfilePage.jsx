@@ -104,7 +104,7 @@ export default function ProfilePage() {
               </>
             )}
           </div>
-          <p className="text-xs text-neutral-400 mt-1">Dining Session at Aurum Bistro</p>
+          <p className="text-xs text-neutral-400 mt-1">Dining Session at 94 Cafe & Chinese</p>
         </div>
 
         {/* Table Session Details */}

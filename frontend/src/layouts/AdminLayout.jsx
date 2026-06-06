@@ -15,11 +15,11 @@ export default function AdminLayout({ children }) {
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-neutral-800 lg:grid lg:grid-cols-[260px_1fr] font-sans antialiased">
       <aside className="border-b border-neutral-200/60 bg-white p-4 lg:min-h-screen lg:border-b-0 lg:border-r lg:p-6 shadow-[2px_0_12px_rgba(0,0,0,0.01)]">
-        <div className="flex items-center gap-2 border-b border-neutral-100 pb-4">
-          <FaUserShield className="text-red-600 text-xl" />
-          <div>
-            <h1 className="text-lg font-black text-red-600 tracking-tight leading-none">Aurum Bistro</h1>
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-neutral-400">Admin Portal</span>
+        <div className="flex flex-col items-center text-center gap-2 border-b border-neutral-100 pb-5 pt-2 w-full">
+          <img src="/logo.png" alt="94 Cafe & Chinese" className="h-16 w-16 rounded-2xl object-cover shadow-md border border-neutral-100 bg-white" />
+          <div className="mt-1">
+            <h1 className="text-base font-black text-neutral-800 tracking-tight leading-none">94 Cafe & Chinese</h1>
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-red-600 mt-1 block">Admin Portal</span>
           </div>
         </div>
         <nav className="mt-6 flex gap-2 overflow-x-auto lg:flex-col">

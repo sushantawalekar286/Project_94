@@ -103,6 +103,18 @@ const completeOrder = async (order) => {
   const existing = await Sale.findOne({ order: order._id });
   if (!existing) {
     await Sale.create({ order: order._id, amount: order.subtotal });
+    
+    // Update menu item statistics
+    for (const item of order.items) {
+      if (item.menuItem) {
+        await MenuItem.findByIdAndUpdate(item.menuItem, {
+          $inc: {
+            totalOrders: 1,
+            totalQuantitySold: item.quantity
+          }
+        });
+      }
+    }
   }
   return order;
 };

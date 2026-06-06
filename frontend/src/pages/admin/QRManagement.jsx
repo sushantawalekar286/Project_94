@@ -113,11 +113,20 @@ export default function QRManagement() {
               font-weight: 800;
               margin-bottom: 20px;
             }
+            .brand-logo {
+              width: 80px;
+              height: 80px;
+              border-radius: 18px;
+              object-fit: cover;
+              margin-bottom: 12px;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            }
           </style>
         </head>
         <body onload="window.print(); window.close();">
           <div class="container">
-            <div class="logo">Aurum Bistro</div>
+            <img class="brand-logo" src="/logo.png" alt="94 Cafe & Chinese Logo" />
+            <div class="logo">94 Cafe & Chinese</div>
             <img src="${qrImageUrl}" alt="Table ${table.number}" />
             <h1>Table ${table.number}</h1>
             <p>Scan to view Menu & Order</p>

@@ -134,7 +134,7 @@ export default function OrdersManagement() {
         </head>
         <body onload="window.print(); window.close();">
           <div class="header">
-            <h1 class="title">AURUM BISTRO</h1>
+            <h1 class="title">94 CAFE & CHINESE</h1>
             <p style="font-size: 11px; margin: 5px 0 0 0;">Table QR Self-Order System</p>
           </div>
           <div class="details">
@@ -195,7 +195,7 @@ export default function OrdersManagement() {
       <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-neutral-200/60 pb-6">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-red-600 font-black">
-            Bistro Audit Trail
+            94 Cafe & Chinese Audit Trail
           </p>
           <h1 className="mt-1 text-3xl font-black text-neutral-800 leading-tight tracking-tight">
             Orders Management

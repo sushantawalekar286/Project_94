@@ -105,7 +105,7 @@ export default function SalesReports() {
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-neutral-200/60 pb-6">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-red-600 font-black">
-            Bistro Financial Report
+            94 Cafe & Chinese Financial Report
           </p>
           <h1 className="mt-1 text-3xl font-black text-neutral-800 leading-tight tracking-tight">
             Revenue Analytics

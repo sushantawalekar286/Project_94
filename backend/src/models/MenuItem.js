@@ -78,7 +78,15 @@ const menuItemSchema = new mongoose.Schema(
     },
     allergens: [
       { type: String }
-    ]
+    ],
+    totalOrders: {
+      type: Number,
+      default: 0
+    },
+    totalQuantitySold: {
+      type: Number,
+      default: 0
+    }
   },
   { timestamps: true }
 );

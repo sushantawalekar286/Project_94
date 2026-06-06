@@ -24,7 +24,9 @@ import {
   getCategories, 
   getMenu, 
   updateMenuItem, 
-  updateMenuItemAvailability 
+  updateMenuItemAvailability,
+  updateCategory,
+  deleteCategory
 } from "../../services/menuService";
 import Button from "../../components/common/Button";
 
@@ -46,13 +48,23 @@ export default function MenuManagement() {
   const [newCategory, setNewCategory] = useState("");
   const [editingId, setEditingId] = useState(null);
   
+  // Category CRUD states
+  const [catForm, setCatForm] = useState({
+    name: "",
+    description: "",
+    image: "",
+    isActive: true
+  });
+  const [editingCatId, setEditingCatId] = useState(null);
+  const [categorySearchQuery, setCategorySearchQuery] = useState("");
+
   // Filters & Search
   const [filterMode, setFilterMode] = useState("all"); // "all", "available", "unavailable"
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Views & Table states
-  const [viewMode, setViewMode] = useState("table"); // "table" or "category"
+  const [viewMode, setViewMode] = useState("table"); // "table", "category", or "category-list"
   const [collapsedCategories, setCollapsedCategories] = useState({});
   const [sortBy, setSortBy] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
@@ -162,6 +174,74 @@ export default function MenuManagement() {
     }
   };
 
+  const handleCatFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Image file size should be less than 2MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCatForm((prev) => ({ ...prev, image: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCategorySubmit = async (e) => {
+    e.preventDefault();
+    if (!catForm.name.trim()) return toast.error("Category name is required");
+
+    try {
+      if (editingCatId) {
+        await updateCategory(editingCatId, catForm);
+        toast.success("Category updated successfully");
+        setEditingCatId(null);
+      } else {
+        await createCategory(catForm);
+        toast.success("Category created successfully");
+      }
+      setCatForm({ name: "", description: "", image: "", isActive: true });
+      refresh();
+    } catch {
+      toast.error("Failed to save category");
+    }
+  };
+
+  const startEditCategory = (cat) => {
+    setEditingCatId(cat._id);
+    setCatForm({
+      name: cat.name || "",
+      description: cat.description || "",
+      image: cat.image || "",
+      isActive: cat.isActive !== false
+    });
+  };
+
+  const handleDeleteCategory = async (id) => {
+    if (window.confirm("Are you sure you want to delete this category? All items in it will remain uncategorized.")) {
+      try {
+        await deleteCategory(id);
+        toast.success("Category deleted");
+        refresh();
+      } catch {
+        toast.error("Failed to delete category");
+      }
+    }
+  };
+
+  const toggleCategoryStatus = async (cat) => {
+    try {
+      const nextActive = !cat.isActive;
+      await updateCategory(cat._id, { isActive: nextActive });
+      toast.success(`Category ${cat.name} is now ${nextActive ? "Active" : "Inactive"}`);
+      refresh();
+    } catch {
+      toast.error("Failed to update status");
+    }
+  };
+
   const handleDeleteItem = async (id) => {
     if (window.confirm("Are you sure you want to delete this menu item?")) {
       try {
@@ -250,6 +330,12 @@ export default function MenuManagement() {
     return groups;
   }, [filteredAndSortedItems]);
 
+  const filteredCategories = useMemo(() => {
+    return categories.filter((cat) =>
+      cat.name?.toLowerCase().includes(categorySearchQuery.toLowerCase())
+    );
+  }, [categories, categorySearchQuery]);
+
   // Pagination details
   const paginatedItems = useMemo(() => {
     const startIdx = (currentPage - 1) * itemsPerPage;
@@ -285,7 +371,7 @@ export default function MenuManagement() {
       {/* Header */}
       <div>
         <p className="text-xs uppercase tracking-[0.24em] text-red-600 font-black">
-          Bistro Management Portal
+          94 Cafe & Chinese Portal
         </p>
         <h1 className="mt-1 text-3xl font-black text-neutral-800 leading-tight tracking-tight">
           Menu Management
@@ -553,11 +639,20 @@ export default function MenuManagement() {
               >
                 <FaFolder size={10} /> Category View
               </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("category-list")}
+                className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-[10px] font-black uppercase transition ${
+                  viewMode === "category-list" ? "bg-red-600 text-white shadow-sm font-black" : "text-neutral-500 hover:text-neutral-700"
+                }`}
+              >
+                <FaFolderOpen size={10} /> Manage Categories
+              </button>
             </div>
           </div>
 
           {/* VIEW: 1. Table View with Columns, Sort, and Pagination */}
-          {viewMode === "table" ? (
+          {viewMode === "table" && (
             <div className="flex-1 flex flex-col justify-between">
               
               {/* Responsive Container */}
@@ -699,8 +794,10 @@ export default function MenuManagement() {
               )}
 
             </div>
-          ) : (
-            /* VIEW: 2. Grouped Category Accordion Panels */
+          )}
+
+          {/* VIEW: 2. Grouped Category Accordion Panels */}
+          {viewMode === "category" && (
             <div className="space-y-3">
               {Object.entries(groupedItems).map(([catName, prodList]) => {
                 const isCollapsed = collapsedCategories[catName] === true;
@@ -783,6 +880,220 @@ export default function MenuManagement() {
               {Object.keys(groupedItems).length === 0 && (
                 <p className="text-neutral-400 text-center py-8">No products found to group.</p>
               )}
+            </div>
+          )}
+
+          {/* VIEW: 3. Manage Categories Panel */}
+          {viewMode === "category-list" && (
+            <div className="flex-1 flex flex-col justify-between">
+              {/* Category Search and Create Form */}
+              <div className="mb-6 bg-neutral-50/50 p-4 border border-neutral-100 rounded-3xl space-y-4">
+                <h3 className="text-sm font-black text-neutral-800">
+                  {editingCatId ? "✏️ Edit Category" : "✨ Create New Category"}
+                </h3>
+                
+                <form onSubmit={handleCategorySubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor="catNameInput" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1">
+                        Category Name
+                      </label>
+                      <input
+                        id="catNameInput"
+                        className="w-full px-4 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs text-neutral-800 focus:outline-none focus:border-red-500 font-semibold"
+                        placeholder="e.g. Pizza, Beverages"
+                        value={catForm.name}
+                        onChange={(e) => setCatForm({ ...catForm, name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="catDescInput" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1">
+                        Description
+                      </label>
+                      <textarea
+                        id="catDescInput"
+                        className="w-full px-4 py-2 bg-white border border-neutral-200 rounded-xl text-xs text-neutral-800 focus:outline-none focus:border-red-500 min-h-16 resize-none font-semibold"
+                        placeholder="e.g. Traditional oven-baked sourdough pizzas"
+                        value={catForm.description}
+                        onChange={(e) => setCatForm({ ...catForm, description: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1">
+                        Category Image Upload / URL
+                      </label>
+                      <div className="flex flex-col gap-2">
+                        {/* File upload input */}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleCatFileChange}
+                          className="block w-full text-xs text-neutral-500 file:mr-4 file:py-1.5 file:px-3.5 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-neutral-200 file:text-neutral-700 hover:file:bg-neutral-300 cursor-pointer"
+                        />
+                        <span className="text-[9px] text-neutral-400 font-bold text-center">- OR paste URL -</span>
+                        <input
+                          className="w-full px-4 py-2 bg-white border border-neutral-200 rounded-xl text-xs text-neutral-800 focus:outline-none focus:border-red-500 font-semibold"
+                          placeholder="Paste category image URL..."
+                          value={catForm.image}
+                          onChange={(e) => setCatForm({ ...catForm, image: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Image Preview */}
+                    {catForm.image && (
+                      <div className="flex items-center gap-3 bg-white border border-neutral-100 p-2 rounded-2xl w-fit">
+                        <img
+                          src={catForm.image}
+                          alt="Category Preview"
+                          className="h-10 w-10 rounded-xl object-cover border border-neutral-100 shadow-sm"
+                          onError={(e) => {
+                            e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80";
+                          }}
+                        />
+                        <span className="text-[10px] text-neutral-400 font-bold">Image Preview</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 text-xs font-black text-neutral-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={catForm.isActive}
+                          onChange={(e) => setCatForm({ ...catForm, isActive: e.target.checked })}
+                          className="rounded text-red-600 focus:ring-red-500 border-neutral-300"
+                        />
+                        Active Status
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2 flex justify-end gap-2 pt-2 border-t border-neutral-100">
+                    {editingCatId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingCatId(null);
+                          setCatForm({ name: "", description: "", image: "", isActive: true });
+                        }}
+                        className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-xs font-bold text-neutral-500 hover:bg-neutral-50 transition"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      className="rounded-xl bg-red-600 px-6 py-2.5 text-xs font-black text-white hover:bg-red-700 shadow-sm transition uppercase tracking-wider"
+                    >
+                      {editingCatId ? "Update Category" : "Create Category"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Category Search Input */}
+              <div className="mb-4">
+                <label className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2 flex-1 max-w-md">
+                  <FaSearch className="text-neutral-400 text-xs" />
+                  <input
+                    className="w-full bg-transparent text-xs text-neutral-800 outline-none placeholder:text-neutral-400 font-medium"
+                    value={categorySearchQuery}
+                    onChange={(e) => setCategorySearchQuery(e.target.value)}
+                    placeholder="Search categories easily..."
+                  />
+                </label>
+              </div>
+
+              {/* Categories Table */}
+              <div className="overflow-x-auto w-full">
+                <table className="w-full text-left border-collapse" aria-label="Categories Table">
+                  <thead>
+                    <tr className="border-b border-neutral-100 text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                      <th className="py-3 px-2">Image</th>
+                      <th className="py-3 px-2">Category Name</th>
+                      <th className="py-3 px-2">Description</th>
+                      <th className="py-3 px-2">Status</th>
+                      <th className="py-3 px-2">Product Count</th>
+                      <th className="py-3 px-2 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-100 text-xs text-neutral-600 font-semibold">
+                    {filteredCategories.map((cat) => {
+                      const prodCount = items.filter(item => {
+                        const itemCatId = item.category?._id || item.category;
+                        return itemCatId === cat._id;
+                      }).length;
+                      
+                      return (
+                        <tr key={cat._id} className="hover:bg-neutral-50/50 transition-colors">
+                          <td className="py-2 px-2">
+                            <img
+                              className="h-10 w-10 rounded-full object-cover border border-neutral-100 shadow-sm"
+                              src={cat.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80"}
+                              alt={cat.name}
+                              onError={(e) => {
+                                e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80";
+                              }}
+                            />
+                          </td>
+                          <td className="py-2 px-2 font-black text-neutral-800">
+                            {cat.name}
+                          </td>
+                          <td className="py-2 px-2 text-neutral-500 font-medium line-clamp-2 max-w-xs">
+                            {cat.description || "No description provided."}
+                          </td>
+                          <td className="py-2 px-2">
+                            <button
+                              type="button"
+                              onClick={() => toggleCategoryStatus(cat)}
+                              className={`rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider transition ${
+                                cat.isActive !== false
+                                  ? "bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
+                                  : "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
+                              }`}
+                            >
+                              {cat.isActive !== false ? "Active" : "Inactive"}
+                            </button>
+                          </td>
+                          <td className="py-2 px-2 text-neutral-500 font-bold">
+                            {prodCount} Items
+                          </td>
+                          <td className="py-2 px-2 text-right">
+                            <div className="inline-flex gap-1.5">
+                              <button
+                                onClick={() => startEditCategory(cat)}
+                                className="rounded-xl bg-white p-2 text-neutral-500 hover:text-neutral-800 border border-neutral-200 hover:bg-neutral-50 shadow-sm"
+                                aria-label={`Edit Category ${cat.name}`}
+                              >
+                                <FaPen size={9} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCategory(cat._id)}
+                                className="rounded-xl bg-red-50 p-2 text-red-600 hover:text-red-700 border border-red-100 hover:bg-red-100/50"
+                                aria-label={`Delete Category ${cat.name}`}
+                              >
+                                <FaTrash size={9} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {(!filteredCategories || filteredCategories.length === 0) && (
+                      <tr>
+                        <td colSpan="6" className="py-8 text-center text-neutral-400">
+                          No categories match the search query.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
