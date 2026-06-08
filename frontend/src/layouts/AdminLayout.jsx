@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { FaChartPie, FaClipboardList, FaMoneyBillWave, FaQrcode, FaUtensils, FaSignOutAlt, FaUserShield } from "react-icons/fa";
+import { FaChartPie, FaClipboardList, FaMoneyBillWave, FaQrcode, FaUtensils, FaSignOutAlt, FaUserShield, FaChartLine } from "react-icons/fa";
 import { useAuth } from "../hooks/useAuth";
 
 const links = [
@@ -7,7 +7,8 @@ const links = [
   ["/admin/menu", "Menu", FaUtensils],
   ["/admin/expenses", "Expenses", FaMoneyBillWave],
   ["/admin/orders", "Orders", FaClipboardList],
-  ["/admin/qr", "QR Codes", FaQrcode]
+  ["/admin/qr", "QR Codes", FaQrcode],
+  ["/admin/reports", "Reports", FaChartLine]
 ];
 
 export default function AdminLayout({ children }) {

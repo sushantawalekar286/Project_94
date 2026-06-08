@@ -1,4 +1,4 @@
-const { dailySales, monthlySales, todayStats, topMenuItems, revenueTimeline } = require("../services/salesService");
+const { dailySales, monthlySales, todayStats, topMenuItems, revenueTimeline, getSalesReport } = require("../services/salesService");
 
 /**
  * PHASE 8 — Enhanced salesController
@@ -79,4 +79,17 @@ const getRevenueTimeline = async (req, res, next) => {
   }
 };
 
-module.exports = { getDailySales, getMonthlySales, getDashboardStats, getTopItems, getRevenueTimeline };
+const getSalesReportData = async (req, res, next) => {
+  try {
+    const { startDate, endDate } = req.query;
+    if (!startDate || !endDate) {
+      return res.status(400).json({ success: false, message: "startDate and endDate are required query parameters" });
+    }
+    const report = await getSalesReport(startDate, endDate);
+    res.json(report);
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getDailySales, getMonthlySales, getDashboardStats, getTopItems, getRevenueTimeline, getSalesReportData };

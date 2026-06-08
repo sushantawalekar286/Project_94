@@ -4,10 +4,13 @@ const {
   getMonthlySales,
   getDashboardStats,
   getTopItems,
-  getRevenueTimeline
+  getRevenueTimeline,
+  getSalesReportData
 } = require("../controllers/salesController");
 const auth = require("../middleware/authMiddleware");
 const role = require("../middleware/roleMiddleware");
+
+router.get("/reports", auth, role("admin"), getSalesReportData);
 
 router.use(auth, role("admin", "chef"));
 

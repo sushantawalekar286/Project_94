@@ -5,3 +5,4 @@ export const getMonthlySales = () => api.get("/sales/monthly");
 export const getDashboardStats = () => api.get("/sales/dashboard");
 export const getTopItems = (limit = 5) => api.get(`/sales/top-items?limit=${limit}`);
 export const getRevenueTimeline = (days = 7) => api.get(`/sales/timeline?days=${days}`);
+export const getSalesReport = (startDate, endDate) => api.get(`/sales/reports?startDate=${startDate}&endDate=${endDate}`);
