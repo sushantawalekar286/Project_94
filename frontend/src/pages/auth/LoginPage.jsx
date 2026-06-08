@@ -57,27 +57,7 @@ export default function LoginPage() {
           </p>
         </div>
         
-        {/* Helper Box: Demo Credentials */}
-        <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-150 text-xs font-semibold text-neutral-500 leading-normal space-y-2">
-          <span className="font-black text-neutral-800 uppercase tracking-wider text-[10px]">Demo Accounts Info</span>
-          <div className="font-mono text-[10px] text-neutral-600 space-y-1">
-            <div className="flex items-center gap-1.5 pl-1">
-              <span>Admin:</span>
-              <span className="text-red-600 font-bold ml-1">admin@restaurant.com</span>
-              <span className="text-neutral-400">/ admin123</span>
-            </div>
-            <div className="flex items-center gap-1.5 pl-1">
-              <span>Chef:</span>
-              <span className="text-red-600 font-bold ml-1">chef@restaurant.com</span>
-              <span className="text-neutral-400">/ chef123</span>
-            </div>
-            <div className="flex items-center gap-1.5 pl-1">
-              <span>Waiter:</span>
-              <span className="text-red-600 font-bold ml-1">waiter@restaurant.com</span>
-              <span className="text-neutral-400">/ waiter123</span>
-            </div>
-          </div>
-        </div>
+
 
         {/* Input Fields */}
         <div className="space-y-4">

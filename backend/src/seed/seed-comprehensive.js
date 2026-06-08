@@ -96,36 +96,27 @@ async function seedData() {
     await mongoose.connect(MONGODB_URI);
     console.log("✅ Connected to MongoDB");
 
-    // 1. Create users if empty
-    const userCount = await User.countDocuments();
+    // 1. Create users
+    console.log("\n👥 Resetting users...");
+    await User.deleteMany({});
     let seededUsersCount = 0;
-    if (userCount === 0) {
-      console.log("\n👥 Creating users...");
-      const adminPassword = await bcryptjs.hash("admin123", 10);
-      const chefPassword = await bcryptjs.hash("chef123", 10);
-      const waiterPassword = await bcryptjs.hash("waiter123", 10);
+    
+    const adminPassword = await bcryptjs.hash("Amar@94", 10);
+    const waiterPassword = await bcryptjs.hash("Raj@94", 10);
+    const chefPassword = await bcryptjs.hash("Chef@94", 10);
 
-      const usersData = [
-        { name: "Admin Chef", email: "admin@restaurant.com", password: adminPassword, role: "admin" },
-        { name: "Chef Rahul", email: "chef1@restaurant.com", password: chefPassword, role: "chef" },
-        { name: "Chef Priya", email: "chef2@restaurant.com", password: chefPassword, role: "chef" },
-        { name: "Chef Vikram", email: "chef3@restaurant.com", password: chefPassword, role: "chef" },
-        { name: "Waiter Amit", email: "waiter1@restaurant.com", password: waiterPassword, role: "waiter" },
-        { name: "Waiter Zara", email: "waiter2@restaurant.com", password: waiterPassword, role: "waiter" },
-        { name: "Waiter Rohan", email: "waiter3@restaurant.com", password: waiterPassword, role: "waiter" },
-        { name: "Waiter Sofia", email: "waiter4@restaurant.com", password: waiterPassword, role: "waiter" },
-        { name: "Waiter Nikhil", email: "waiter5@restaurant.com", password: waiterPassword, role: "waiter" },
-      ];
+    const usersData = [
+      { name: "Admin Amar", email: "amar94cafe@gmail.com", password: adminPassword, role: "admin" },
+      { name: "Waiter Raj", email: "raj94cafe@gmail.com", password: waiterPassword, role: "waiter" },
+      { name: "Chef", email: "chef94cafe@gmail.com", password: chefPassword, role: "chef" }
+    ];
 
-      const users = await User.insertMany(usersData);
-      seededUsersCount = users.length;
-      console.log(`✅ Created ${users.length} users`);
-      console.log("   Admin: admin@restaurant.com / admin123");
-      console.log("   Chefs: chef1-3@restaurant.com / chef123");
-      console.log("   Waiters: waiter1-5@restaurant.com / waiter123");
-    } else {
-      console.log("⏭️  Users collection is not empty, skipping users seeding");
-    }
+    const users = await User.insertMany(usersData);
+    seededUsersCount = users.length;
+    console.log(`✅ Created ${users.length} users`);
+    console.log("   Admin: amar94cafe@gmail.com / Amar@94");
+    console.log("   Waiter: raj94cafe@gmail.com / Raj@94");
+    console.log("   Chef: chef94cafe@gmail.com / Chef@94");
 
     // 2. Create categories if empty
     let categories = [];
@@ -236,14 +227,14 @@ async function seedData() {
     console.log("=".repeat(60));
     console.log("\n📋 Demo Credentials:");
     console.log("\n  ADMIN:");
-    console.log("    Email: admin@restaurant.com");
-    console.log("    Password: admin123");
-    console.log("\n  CHEFS:");
-    console.log("    Emails: chef1@restaurant.com, chef2@restaurant.com, chef3@restaurant.com");
-    console.log("    Password: chef123");
-    console.log("\n  WAITERS:");
-    console.log("    Emails: waiter[1-5]@restaurant.com");
-    console.log("    Password: waiter123");
+    console.log("    Email: amar94cafe@gmail.com");
+    console.log("    Password: Amar@94");
+    console.log("\n  CHEF:");
+    console.log("    Email: chef94cafe@gmail.com");
+    console.log("    Password: Chef@94");
+    console.log("\n  WAITER:");
+    console.log("    Email: raj94cafe@gmail.com");
+    console.log("    Password: Raj@94");
     const finalUsersCount = await User.countDocuments();
     const finalCategoriesCount = await Category.countDocuments();
     const finalMenuItemsCount = await MenuItem.countDocuments();

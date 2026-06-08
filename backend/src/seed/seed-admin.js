@@ -7,27 +7,34 @@ require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 require("dotenv").config({ path: path.resolve(__dirname, "../../../.env") });
 
 const seedAdmin = async () => {
-  const passwordAdmin = await bcrypt.hash("admin123", 10);
-  await User.findOneAndUpdate(
-    { email: "admin@restaurant.com" },
-    { name: "Admin", email: "admin@restaurant.com", password: passwordAdmin, role: "admin" },
-    { upsert: true, new: true }
-  );
+  // Clear any existing accounts to satisfy deactivation/deletion of old demo/test accounts
+  await User.deleteMany({});
 
-  const passwordChef = await bcrypt.hash("chef123", 10);
-  await User.findOneAndUpdate(
-    { email: "chef@restaurant.com" },
-    { name: "Chef", email: "chef@restaurant.com", password: passwordChef, role: "chef" },
-    { upsert: true, new: true }
-  );
+  const passwordAdmin = await bcrypt.hash("Amar@94", 10);
+  await User.create({
+    name: "Admin Amar",
+    email: "amar94cafe@gmail.com",
+    password: passwordAdmin,
+    role: "admin"
+  });
 
-  const passwordWaiter = await bcrypt.hash("waiter123", 10);
-  await User.findOneAndUpdate(
-    { email: "waiter@restaurant.com" },
-    { name: "Waiter", email: "waiter@restaurant.com", password: passwordWaiter, role: "waiter" },
-    { upsert: true, new: true }
-  );
-  console.log("✅ Admin, Chef, and Waiter seeded successfully.");
+  const passwordWaiter = await bcrypt.hash("Raj@94", 10);
+  await User.create({
+    name: "Waiter Raj",
+    email: "raj94cafe@gmail.com",
+    password: passwordWaiter,
+    role: "waiter"
+  });
+
+  const passwordChef = await bcrypt.hash("Chef@94", 10);
+  await User.create({
+    name: "Chef",
+    email: "chef94cafe@gmail.com",
+    password: passwordChef,
+    role: "chef"
+  });
+
+  console.log("✅ New default Admin, Waiter, and Chef accounts seeded successfully.");
 };
 
 if (require.main === module) {
