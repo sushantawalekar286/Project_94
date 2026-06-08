@@ -3,7 +3,7 @@ const { listTables, updateTableStatus } = require("../controllers/tableControlle
 const auth = require("../middleware/authMiddleware");
 const role = require("../middleware/roleMiddleware");
 
-router.get("/", auth, role("admin", "waiter"), listTables);
-router.patch("/:id/status", auth, role("admin", "waiter"), updateTableStatus);
+router.get("/", auth, role("admin", "waiter", "chef"), listTables);
+router.patch("/:id/status", auth, role("admin", "waiter", "chef"), updateTableStatus);
 
 module.exports = router;

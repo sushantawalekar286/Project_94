@@ -9,7 +9,7 @@ const {
 const auth = require("../middleware/authMiddleware");
 const role = require("../middleware/roleMiddleware");
 
-router.use(auth, role("admin"));
+router.use(auth, role("admin", "chef"));
 
 router.get("/daily", getDailySales);
 router.get("/monthly", getMonthlySales);
