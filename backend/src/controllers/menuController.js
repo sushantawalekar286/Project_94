@@ -16,7 +16,7 @@ const listMenu = async (req, res, next) => {
   try {
     const [items, stats] = await Promise.all([
       MenuItem.find({})
-        .populate("category", "name isActive")
+        .populate("category", "name isActive menuType")
         .lean()
         .sort({ createdAt: -1 }),
       Order.aggregate([
@@ -82,7 +82,7 @@ const createMenuItem = async (req, res, next) => {
       vegan: req.body.vegan,
       allergens: req.body.allergens
     });
-    const populated = await item.populate([{ path: "category", select: "name isActive" }]);
+    const populated = await item.populate([{ path: "category", select: "name isActive menuType" }]);
     res.status(201).json(populated);
   } catch (error) {
     next(error);
@@ -101,7 +101,7 @@ const updateMenuItem = async (req, res, next) => {
       ...(req.body.isAvailable !== undefined ? { available: req.body.isAvailable } : {})
     };
     const item = await MenuItem.findByIdAndUpdate(req.params.id, nextBody, { new: true, runValidators: true })
-      .populate("category", "name isActive");
+      .populate("category", "name isActive menuType");
     if (!item) return res.status(404).json({ success: false, message: "Menu item not found" });
     res.json(item);
   } catch (error) {
@@ -130,7 +130,7 @@ const updateAvailability = async (req, res, next) => {
       req.params.id,
       { isAvailable, available: isAvailable },
       { new: true, runValidators: true }
-    ).populate("category", "name isActive");
+    ).populate("category", "name isActive menuType");
     if (!item) return res.status(404).json({ success: false, message: "Menu item not found" });
     res.json(item);
   } catch (error) {

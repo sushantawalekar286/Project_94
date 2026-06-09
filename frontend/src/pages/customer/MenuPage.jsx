@@ -55,41 +55,20 @@ const SUPER_CATEGORIES = {
     title: "Cafe",
     subtitle: "Coffee, Tea, Shakes, Snacks",
     description: "Espresso, mocktails, burgers, pizzas, and light bites",
-    image: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=600&q=80",
-    categories: [
-      "Nuggets", "Burgers", "Fries", "Rolls", "Ice Cream", 
-      "Cold Coffee", "Hot Coffee", "Milkshakes", "Sandwiches", 
-      "Toasts", "Mocktails", "Special Pizzas", "Veg Pizzas", "Maggie",
-      "Pizza", "Burgers", "Fries", "Beverages"
-    ]
+    image: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=600&q=80"
   },
   "Chinese Menu": {
     title: "Chinese",
     subtitle: "Noodles, Fried Rice, Starters",
     description: "Delectable noodles, fried rice, momos, soups, and appetizers",
-    image: "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=600&q=80",
-    categories: [
-      "Momos", "Paneer Course (Rice)", "Paneer Course (Noodles)", 
-      "Chicken Special", "Veg Soups", "Veg Chopsuey", "Non-Veg Soups", 
-      "Non-Veg Chopsuey", "Non-Veg Course (Rice)", "Non-Veg Course (Noodles)"
-    ]
+    image: "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=600&q=80"
   }
 };
 
-const getSuperCategoryForItem = (categoryName) => {
-  if (!categoryName) return "Cafe Menu";
-  for (const [key, value] of Object.entries(SUPER_CATEGORIES)) {
-    if (value.categories.some(cat => cat.toLowerCase() === categoryName.toLowerCase())) {
-      return key;
-    }
-  }
-  
-  const name = categoryName.toLowerCase();
-  if (name.includes("momo") || name.includes("soup") || name.includes("chopsuey") || name.includes("noodle") || name.includes("rice") || name.includes("chicken")) {
-    return "Chinese Menu";
-  }
-  
-  return "Cafe Menu";
+const getSuperCategoryForItem = (category) => {
+  if (!category) return "Cafe Menu";
+  const menuType = typeof category === "object" ? category.menuType : "cafe";
+  return menuType === "chinese" ? "Chinese Menu" : "Cafe Menu";
 };
 
 export default function MenuPage() {
@@ -199,8 +178,12 @@ export default function MenuPage() {
 
   const categories = useMemo(() => {
     const list = [{ name: "All" }];
+    const targetMenu = selectedMenuCategory === "Chinese Menu" ? "chinese" : "cafe";
     if (dbCategories.length > 0) {
       dbCategories.forEach((cat) => {
+        const catMenuType = cat.menuType || "cafe";
+        if (catMenuType !== targetMenu) return;
+        
         const hasItems = menuItemsFilteredBySuper.some(
           (item) => (item.category?._id || item.category) === cat._id || item.category?.name === cat.name
         );
@@ -213,7 +196,7 @@ export default function MenuPage() {
       names.forEach(name => list.push({ name }));
     }
     return list;
-  }, [dbCategories, menuItemsFilteredBySuper]);
+  }, [dbCategories, menuItemsFilteredBySuper, selectedMenuCategory]);
 
   const [vegOnly, setVegOnly] = useState(() => localStorage.getItem("prefVegOnly") === "true");
 

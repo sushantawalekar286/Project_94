@@ -47,12 +47,14 @@ export default function MenuManagement() {
   const [form, setForm] = useState(emptyForm);
   const [newCategory, setNewCategory] = useState("");
   const [editingId, setEditingId] = useState(null);
+  const [itemMenuType, setItemMenuType] = useState("cafe");
   
   // Category CRUD states
   const [catForm, setCatForm] = useState({
     name: "",
     description: "",
     image: "",
+    menuType: "cafe",
     isActive: true
   });
   const [editingCatId, setEditingCatId] = useState(null);
@@ -62,6 +64,10 @@ export default function MenuManagement() {
   const [filterMode, setFilterMode] = useState("all"); // "all", "available", "unavailable"
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const itemCategories = useMemo(() => {
+    return categories.filter(cat => (cat.menuType || "cafe") === itemMenuType);
+  }, [categories, itemMenuType]);
 
   // Views & Table states
   const [viewMode, setViewMode] = useState("table"); // "table", "category", or "category-list"
@@ -83,7 +89,8 @@ export default function MenuManagement() {
       .then((res) => {
         const cats = res.data?.data || res.data || [];
         setCategories(Array.isArray(cats) ? cats : []);
-        setForm((current) => ({ ...current, category: current.category || cats[0]?._id || "" }));
+        const firstCafeCat = cats.find(c => (c.menuType || "cafe") === "cafe");
+        setForm((current) => ({ ...current, category: current.category || firstCafeCat?._id || cats[0]?._id || "" }));
       })
       .catch(() => setCategories([]));
   };
@@ -109,6 +116,9 @@ export default function MenuManagement() {
       halfPrice: item.halfPrice ?? "",
       fullPrice: item.fullPrice ?? ""
     });
+    const catId = item.category?._id || item.category || "";
+    const matchedCat = categories.find(c => c._id === catId);
+    setItemMenuType(matchedCat?.menuType || "cafe");
   };
 
   const toggleAvailability = async (item) => {
@@ -155,7 +165,9 @@ export default function MenuManagement() {
         await createMenuItem(payload);
         toast.success("Menu item added");
       }
-      setForm({ ...emptyForm, category: categories[0]?._id || "" });
+      setItemMenuType("cafe");
+      const firstCafeCat = categories.find(c => (c.menuType || "cafe") === "cafe");
+      setForm({ ...emptyForm, category: firstCafeCat?._id || "" });
       refresh();
     } catch {
       toast.error(editingId ? "Failed to update menu item" : "Failed to add menu item");
@@ -202,7 +214,7 @@ export default function MenuManagement() {
         await createCategory(catForm);
         toast.success("Category created successfully");
       }
-      setCatForm({ name: "", description: "", image: "", isActive: true });
+      setCatForm({ name: "", description: "", image: "", menuType: "cafe", isActive: true });
       refresh();
     } catch {
       toast.error("Failed to save category");
@@ -215,6 +227,7 @@ export default function MenuManagement() {
       name: cat.name || "",
       description: cat.description || "",
       image: cat.image || "",
+      menuType: cat.menuType || "cafe",
       isActive: cat.isActive !== false
     });
   };
@@ -493,18 +506,36 @@ export default function MenuManagement() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label htmlFor="formItemMenuType" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">Menu Type</label>
+              <select
+                id="formItemMenuType"
+                className="w-full px-3 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-700 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 cursor-pointer font-bold"
+                value={itemMenuType}
+                onChange={(e) => {
+                  const selectedType = e.target.value;
+                  setItemMenuType(selectedType);
+                  const firstCat = categories.find(cat => (cat.menuType || "cafe") === selectedType);
+                  setForm(f => ({ ...f, category: firstCat?._id || "" }));
+                }}
+              >
+                <option value="cafe">Cafe</option>
+                <option value="chinese">Chinese</option>
+              </select>
+            </div>
+
             <div>
               <label htmlFor="formCategory" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">Category</label>
               <select 
                 id="formCategory"
-                className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-700 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 cursor-pointer font-bold"
+                className="w-full px-3 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-700 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 cursor-pointer font-bold"
                 value={form.category} 
                 onChange={(e) => setForm({ ...form, category: e.target.value })} 
                 required
               >
                 <option value="" disabled>Select Category</option>
-                {categories?.map((cat) => (
+                {itemCategories?.map((cat) => (
                   <option key={cat._id} value={cat._id}>{cat.name}</option>
                 ))}
               </select>
@@ -514,7 +545,7 @@ export default function MenuManagement() {
               <label htmlFor="formPricingType" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">Price Structure</label>
               <select 
                 id="formPricingType"
-                className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-700 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 cursor-pointer font-bold"
+                className="w-full px-3 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-700 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 cursor-pointer font-bold"
                 value={form.pricingType} 
                 onChange={(e) => setForm({ ...form, pricingType: e.target.value })}
               >
@@ -580,7 +611,9 @@ export default function MenuManagement() {
               type="button"
               onClick={() => {
                 setEditingId(null);
-                setForm({ ...emptyForm, category: categories[0]?._id || "" });
+                setItemMenuType("cafe");
+                const firstCafeCat = categories.find(c => (c.menuType || "cafe") === "cafe");
+                setForm({ ...emptyForm, category: firstCafeCat?._id || "" });
               }}
               className="w-full rounded-xl border border-neutral-200 py-3 font-bold hover:bg-neutral-50 text-neutral-500 text-xs transition duration-200"
             >
@@ -909,6 +942,22 @@ export default function MenuManagement() {
                     </div>
                     
                     <div>
+                      <label htmlFor="catMenuTypeInput" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1">
+                        Menu Type
+                      </label>
+                      <select
+                        id="catMenuTypeInput"
+                        className="w-full px-4 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs text-neutral-700 focus:outline-none focus:border-red-500 font-bold cursor-pointer"
+                        value={catForm.menuType || "cafe"}
+                        onChange={(e) => setCatForm({ ...catForm, menuType: e.target.value })}
+                        required
+                      >
+                        <option value="cafe">Cafe</option>
+                        <option value="chinese">Chinese</option>
+                      </select>
+                    </div>
+                    
+                    <div>
                       <label htmlFor="catDescInput" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1">
                         Description
                       </label>
@@ -979,7 +1028,7 @@ export default function MenuManagement() {
                         type="button"
                         onClick={() => {
                           setEditingCatId(null);
-                          setCatForm({ name: "", description: "", image: "", isActive: true });
+                          setCatForm({ name: "", description: "", image: "", menuType: "cafe", isActive: true });
                         }}
                         className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-xs font-bold text-neutral-500 hover:bg-neutral-50 transition"
                       >
@@ -1016,6 +1065,7 @@ export default function MenuManagement() {
                     <tr className="border-b border-neutral-100 text-[10px] font-bold uppercase tracking-wider text-neutral-400">
                       <th className="py-3 px-2">Image</th>
                       <th className="py-3 px-2">Category Name</th>
+                      <th className="py-3 px-2">Menu Type</th>
                       <th className="py-3 px-2">Description</th>
                       <th className="py-3 px-2">Status</th>
                       <th className="py-3 px-2">Product Count</th>
@@ -1043,6 +1093,9 @@ export default function MenuManagement() {
                           </td>
                           <td className="py-2 px-2 font-black text-neutral-800">
                             {cat.name}
+                          </td>
+                          <td className="py-2 px-2 text-neutral-500 font-bold uppercase">
+                            {cat.menuType || "cafe"}
                           </td>
                           <td className="py-2 px-2 text-neutral-500 font-medium line-clamp-2 max-w-xs">
                             {cat.description || "No description provided."}

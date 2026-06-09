@@ -2,7 +2,8 @@ const Category = require("../models/Category");
 
 const listCategories = async (req, res, next) => {
   try {
-    res.json(await Category.find());
+    const filter = req.query.menuType ? { menuType: req.query.menuType } : {};
+    res.json(await Category.find(filter));
   } catch (error) {
     next(error);
   }
