@@ -171,7 +171,7 @@ export default function MenuPage() {
 
   const menuItemsFilteredBySuper = useMemo(() => {
     return items.filter(item => {
-      const superCat = getSuperCategoryForItem(item.category?.name);
+      const superCat = getSuperCategoryForItem(item.category);
       return superCat === selectedMenuCategory;
     });
   }, [items, selectedMenuCategory]);
