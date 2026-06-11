@@ -12,7 +12,9 @@ const menuSchema = Joi.object({
   fullPrice: Joi.number().min(0).allow(null),
   category: Joi.string().required(),
   available: Joi.boolean().default(true),
-  isAvailable: Joi.boolean().default(true)
+  isAvailable: Joi.boolean().default(true),
+  dietaryType: Joi.string().valid("veg", "non-veg", "egg").default("veg"),
+  vegetarian: Joi.boolean().default(false)
 }).custom((value, helpers) => {
   if (value.pricingType === "single" && value.singlePrice == null && value.price == null) {
     return helpers.error("any.custom", { message: "singlePrice is required for single pricing" });
