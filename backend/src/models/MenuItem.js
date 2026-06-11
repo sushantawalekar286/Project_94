@@ -76,6 +76,11 @@ const menuItemSchema = new mongoose.Schema(
       type: Boolean, 
       default: false 
     },
+    dietaryType: {
+      type: String,
+      enum: ["veg", "non-veg", "egg"],
+      default: "veg"
+    },
     allergens: [
       { type: String }
     ],

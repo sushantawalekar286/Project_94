@@ -258,12 +258,25 @@ const menuData = [
 ];
 
 const seedMenu = async () => {
+  const CHINESE_EXACT_NAMES = [
+    "Momos", "Paneer Course (Rice)", "Paneer Course (Noodles)", 
+    "Chicken Special", "Veg Soups", "Veg Chopsuey", "Non-Veg Soups", 
+    "Non-Veg Chopsuey", "Non-Veg Course (Rice)", "Non-Veg Course (Noodles)"
+  ];
+
   // First seed categories using stable CATEGORY_IDS
   for (const [key, id] of Object.entries(CATEGORY_IDS)) {
     const name = CATEGORY_NAMES[key];
+    const isChinese = CHINESE_EXACT_NAMES.includes(name);
     await Category.findOneAndUpdate(
       { _id: id },
-      { _id: id, name, description: `${name} selections`, isActive: true },
+      { 
+        _id: id, 
+        name, 
+        description: `${name} selections`, 
+        menuType: isChinese ? "chinese" : "cafe",
+        isActive: true 
+      },
       { upsert: true, new: true }
     );
   }
@@ -271,6 +284,24 @@ const seedMenu = async () => {
   // Next seed menu items
   for (const item of menuData) {
     const imageVal = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80";
+    
+    // Infer dietaryType
+    let dType = "veg";
+    const lowercaseName = item.name.toLowerCase();
+    if (
+      lowercaseName.includes("chicken") ||
+      lowercaseName.includes("chi.") ||
+      lowercaseName.includes("non. veg") ||
+      lowercaseName.includes("non-veg") ||
+      lowercaseName.includes("lollipop")
+    ) {
+      dType = "non-veg";
+    } else if (lowercaseName.includes("egg")) {
+      dType = "egg";
+    } else if (item.vegetarian === false) {
+      dType = "non-veg";
+    }
+
     await MenuItem.findOneAndUpdate(
       { name: item.name },
       {
@@ -286,7 +317,8 @@ const seedMenu = async () => {
         image: imageVal,
         isAvailable: true,
         available: true,
-        vegetarian: item.vegetarian ?? true
+        vegetarian: item.vegetarian ?? true,
+        dietaryType: dType
       },
       { upsert: true, new: true }
     );

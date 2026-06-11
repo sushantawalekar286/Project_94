@@ -34,10 +34,13 @@ const registerUser = async ({ name, email, password, role }, jwtSecret, adminId 
 
 const crypto = require('crypto');
 const loginUser = async ({ email, password }, jwtSecret) => {
-  const user = await User.findOne({ email }).select("+password +refreshTokenHash");
+  const cleanEmail = (email || "").trim().toLowerCase();
+  const cleanPassword = (password || "").trim();
+
+  const user = await User.findOne({ email: cleanEmail }).select("+password +refreshTokenHash");
   if (!user) throw Object.assign(new Error("Invalid credentials"), { statusCode: 401 });
 
-  const ok = await bcrypt.compare(password, user.password);
+  const ok = await bcrypt.compare(cleanPassword, user.password);
   if (!ok) throw Object.assign(new Error("Invalid credentials"), { statusCode: 401 });
 
   // Create refresh token as a JWT and persist its SHA-256 hash (fast DB lookup)

@@ -36,7 +36,7 @@ const findTable = async ({ tableNumber, token }) => {
   return null;
 };
 
-const createOrder = async ({ tableId, tableNumber, token, items }) => {
+const createOrder = async ({ tableId, tableNumber, token, items, specialInstructions, source }) => {
   if (!tableId && !tableNumber && !token) {
     throw new Error("Table information is required");
   }
@@ -76,15 +76,23 @@ const createOrder = async ({ tableId, tableNumber, token, items }) => {
     items: enrichedItems,
     subtotal,
     tax,
-    total
+    total,
+    specialInstructions: specialInstructions || ""
   });
+
+  // Save the source field directly in MongoDB (bypassing strict schema validation)
+  const actualSource = source || "QR Order";
+  await Order.collection.updateOne({ _id: order._id }, { $set: { source: actualSource } });
+  if (order._doc) {
+    order._doc.source = actualSource;
+  }
 
   // Link order to table and mark table as occupied
   table.activeOrder = order._id;
   table.status = "occupied";
   await table.save();
 
-  console.log(`[MONGO SAVE] Order created successfully for Table ${order.tableNumber} (Order ID: ${order._id}, Total: ₹${order.total})`);
+  console.log(`[MONGO SAVE] Order created successfully for Table ${order.tableNumber} (Order ID: ${order._id}, Total: ₹${order.total}, Source: ${actualSource})`);
 
   return order;
 };

@@ -5,6 +5,8 @@ const orderSchema = Joi.object({
   tableId: Joi.string().allow(null).optional(),
   tableNumber: Joi.number().integer().min(1).allow(null).optional(),
   token: Joi.string().allow("", null).optional(),
+  specialInstructions: Joi.string().allow("").optional(),
+  source: Joi.string().valid("QR Order", "Staff Order").optional(),
   items: Joi.array()
     .items(
       Joi.object({

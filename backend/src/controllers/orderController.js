@@ -2,6 +2,8 @@ const Order = require("../models/Order");
 const { createOrder, onOrderPreparing, completeOrder } = require("../services/orderService");
 const { getIO } = require("../config/socket");
 const { isValidTransition } = require("../constants/orderStatus");
+const jwt = require("jsonwebtoken");
+const env = require("../config/env");
 
 /**
  * PHASE 2 & 5 — Fixed orderController
@@ -31,7 +33,7 @@ const listOrders = async (req, res, next) => {
 
 const getOrderById = async (req, res, next) => {
   try {
-    const order = await Order.findById(req.params.id).populate("table", "number token");
+    const order = await Order.findById(req.params.id).populate("table", "number token").lean();
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
     res.json(order);
   } catch (error) {
@@ -46,6 +48,28 @@ const placeOrder = async (req, res, next) => {
   let savedOrder = null;
   try {
     console.log(orderData);
+
+    // Determine source
+    let source = orderData.source;
+    if (!source) {
+      const header = req.headers.authorization || "";
+      const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+      if (token) {
+        try {
+          const decoded = jwt.verify(token, env.JWT_SECRET);
+          if (decoded && ["admin", "chef", "waiter"].includes(decoded.role)) {
+            source = "Staff Order";
+          }
+        } catch (err) {
+          // Ignore token verification errors
+        }
+      }
+    }
+    if (!source) {
+      source = "QR Order";
+    }
+    orderData.source = source;
+
     const order = await createOrder(orderData);
     savedOrder = order;
     console.log(savedOrder);
@@ -110,7 +134,7 @@ const updateOrderStatus = async (req, res, next) => {
       req.params.id,
       updateFields,
       { new: true }
-    );
+    ).lean();
 
     // Trigger inventory deduction when kitchen starts Cooking or Accepted
     if ((status === "Cooking" || status === "Accepted") && current.status === "Pending") {
@@ -147,7 +171,8 @@ const getActiveOrderByTable = async (req, res, next) => {
     const { tableNumber } = req.params;
     const order = await Order.findOne({ tableNumber: Number(tableNumber) })
       .sort({ createdAt: -1 })
-      .populate("table", "number token");
+      .populate("table", "number token")
+      .lean();
 
     if (!order) {
       return res.json({ active: false, order: null });
