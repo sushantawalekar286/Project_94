@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { getOrders, updateOrderStatus } from "../../services/orderService";
 import StatusBadge from "../../components/chef/StatusBadge";
-import { FaClock, FaUtensils, FaSearch, FaUser, FaChevronLeft, FaChevronRight, FaPrint, FaBan, FaCheck, FaSync } from "react-icons/fa";
+import { FaClock, FaUtensils, FaSearch, FaUser, FaChevronLeft, FaChevronRight, FaPrint, FaBan, FaCheck, FaSync, FaPlus } from "react-icons/fa";
 import toast from "react-hot-toast";
 import Button from "../../components/common/Button";
+import ManualOrderModal from "../../components/common/ManualOrderModal";
 
 export default function OrdersManagement() {
   const [orders, setOrders] = useState([]);
@@ -11,6 +12,7 @@ export default function OrdersManagement() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -202,15 +204,25 @@ export default function OrdersManagement() {
           </h1>
         </div>
         
-        {/* Search Bar */}
-        <div className="relative w-full md:max-w-xs">
-          <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
-          <input
-            className="w-full pl-11 pr-4 py-3 bg-white border border-neutral-200 rounded-2xl text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition-colors duration-200 font-semibold shadow-sm"
-            placeholder="Search Table #, Status, or ID"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="flex flex-col sm:flex-row gap-3 items-center w-full md:max-w-md justify-end">
+          {/* Place Order button */}
+          <button
+            onClick={() => setIsOrderModalOpen(true)}
+            className="flex items-center gap-2 rounded-2xl bg-red-600 hover:bg-red-700 text-white py-3 px-5 text-xs font-black uppercase tracking-wider shadow-sm transition active:scale-95 whitespace-nowrap w-full sm:w-auto justify-center"
+          >
+            <FaPlus /> Place Order
+          </button>
+
+          {/* Search Bar */}
+          <div className="relative w-full sm:max-w-xs">
+            <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <input
+              className="w-full pl-11 pr-4 py-3 bg-white border border-neutral-200 rounded-2xl text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition-colors duration-200 font-semibold shadow-sm"
+              placeholder="Search Table #, Status, or ID"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
       </header>
 
@@ -427,6 +439,11 @@ export default function OrdersManagement() {
         </footer>
       )}
 
+      <ManualOrderModal
+        isOpen={isOrderModalOpen}
+        onClose={() => setIsOrderModalOpen(false)}
+        onSuccess={fetchOrders}
+      />
     </section>
   );
 }

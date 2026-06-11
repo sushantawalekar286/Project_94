@@ -1,5 +1,7 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
+import { useAuth } from "../hooks/useAuth";
 import CustomerLayout from "../layouts/CustomerLayout";
 import ChefLayout from "../layouts/ChefLayout";
 import AdminLayout from "../layouts/AdminLayout";
@@ -19,6 +21,28 @@ import QRManagement from "../pages/admin/QRManagement";
 import LoginPage from "../pages/auth/LoginPage";
 
 export default function AppRoutes() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!loading && user) {
+      const staffRoles = ["admin", "chef", "waiter"];
+      if (staffRoles.includes(user.role)) {
+        const customerPaths = ["/scan", "/table", "/customer"];
+        const isCustomerPath = customerPaths.some(p => location.pathname.startsWith(p)) || location.pathname === "/" || location.pathname === "/login";
+        if (isCustomerPath) {
+          const destination = user.role === "admin"
+            ? "/admin"
+            : user.role === "chef"
+              ? "/chef"
+              : "/waiter";
+          navigate(destination, { replace: true });
+        }
+      }
+    }
+  }, [user, loading, location.pathname, navigate]);
+
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/scan" replace />} />

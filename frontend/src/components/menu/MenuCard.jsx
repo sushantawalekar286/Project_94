@@ -85,19 +85,47 @@ const MenuCard = ({ item }) => {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Veg/Non-Veg & Spice level badges */}
         <div className="flex items-center gap-2 mb-1">
-          <span className={`inline-flex items-center justify-center w-3.5 h-3.5 border ${item.vegetarian ? "border-green-600" : "border-red-600"} p-0.5 rounded-sm flex-shrink-0`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${item.vegetarian ? "bg-green-600" : "bg-red-600"}`}></span>
-          </span>
+          {(() => {
+            const dType = item.dietaryType || (item.vegetarian ? "veg" : "non-veg");
+            if (dType === "veg") {
+              return (
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-[11px] leading-none">🟢</span>
+                  <span className="text-[9px] font-black text-green-700 uppercase tracking-wider">Veg</span>
+                </span>
+              );
+            } else if (dType === "egg") {
+              return (
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-[11px] leading-none">🟡</span>
+                  <span className="text-[9px] font-black text-amber-600 uppercase tracking-wider">Egg</span>
+                </span>
+              );
+            } else {
+              return (
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-[11px] leading-none">🔴</span>
+                  <span className="text-[9px] font-black text-red-600 uppercase tracking-wider">Non Veg</span>
+                </span>
+              );
+            }
+          })()}
           
           {item.spiceLevel > 1 && (
-            <span className="text-[9px] font-bold text-red-600 bg-red-50 px-1 py-0.5 rounded">
+            <span className="text-[9px] font-bold text-red-655 bg-red-50 px-1.5 py-0.5 rounded">
               🌶️ Spicy
             </span>
           )}
           
           {item.vegan && (
-            <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded">
+            <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
               Vegan
+            </span>
+          )}
+
+          {item.category?.name && (
+            <span className="text-[9px] font-black text-amber-805 text-amber-700 bg-amber-50 border border-amber-100 px-1.5 py-0.5 rounded uppercase tracking-wider">
+              {item.category.name}
             </span>
           )}
         </div>

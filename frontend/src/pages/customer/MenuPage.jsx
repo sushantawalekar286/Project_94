@@ -18,20 +18,24 @@ const fallbackImages = {
 };
 
 const fallbackMenu = fallbackCategories.flatMap((category, categoryIndex) =>
-  [1, 2, 3].map((count) => ({
-    _id: `${category}-${count}`,
-    name: `${category === "Fries" ? "Loaded" : "Signature"} ${category} ${count}`,
-    description: "Chef curated flavors with premium ingredients and a polished restaurant finish.",
-    pricingType: count === 2 ? "half-full" : "single",
-    singlePrice: 129 + categoryIndex * 70 + count * 35,
-    halfPrice: 99 + categoryIndex * 40 + count * 20,
-    fullPrice: 149 + categoryIndex * 75 + count * 40,
-    price: 129 + categoryIndex * 70 + count * 35,
-    rating: (4.4 + count / 10).toFixed(1),
-    imageUrl: fallbackImages[category],
-    vegetarian: count % 2 !== 0,
-    category: { name: category }
-  }))
+  [1, 2, 3].map((count) => {
+    const isVeg = count % 2 !== 0;
+    return {
+      _id: `${category}-${count}`,
+      name: `${category === "Fries" ? "Loaded" : "Signature"} ${category} ${count}`,
+      description: "Chef curated flavors with premium ingredients and a polished restaurant finish.",
+      pricingType: count === 2 ? "half-full" : "single",
+      singlePrice: 129 + categoryIndex * 70 + count * 35,
+      halfPrice: 99 + categoryIndex * 40 + count * 20,
+      fullPrice: 149 + categoryIndex * 75 + count * 40,
+      price: 129 + categoryIndex * 70 + count * 35,
+      rating: (4.4 + count / 10).toFixed(1),
+      imageUrl: fallbackImages[category],
+      vegetarian: isVeg,
+      dietaryType: count === 2 ? "egg" : (isVeg ? "veg" : "non-veg"),
+      category: { name: category }
+    };
+  })
 );
 
 const MenuSkeleton = () => (
@@ -90,6 +94,59 @@ export default function MenuPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { items: cartItems, tableSession, setTableSession } = useCart();
+
+  const [dietaryPref, setDietaryPref] = useState(() => localStorage.getItem("dietaryPref") || "all");
+  const [recentSearches, setRecentSearches] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("recentSearches") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const changeDietaryPref = (pref) => {
+    setDietaryPref(pref);
+    localStorage.setItem("dietaryPref", pref);
+    const labels = {
+      all: "Showing all items",
+      veg: "Veg-only menu active",
+      "non-veg": "Non-Veg-only menu active",
+      egg: "Egg-only menu active"
+    };
+    toast.success(labels[pref]);
+  };
+
+  const handleDietaryChange = (val) => {
+    if (dietaryPref === val) {
+      changeDietaryPref("all");
+    } else {
+      changeDietaryPref(val);
+    }
+  };
+
+  const addToRecentSearches = (q) => {
+    const trimmed = q.trim();
+    if (!trimmed) return;
+    setRecentSearches((prev) => {
+      const filtered = prev.filter((s) => s.toLowerCase() !== trimmed.toLowerCase());
+      const updated = [trimmed, ...filtered].slice(0, 5);
+      localStorage.setItem("recentSearches", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const clearRecentSearches = () => {
+    localStorage.removeItem("recentSearches");
+    setRecentSearches([]);
+    toast.success("Recent searches cleared");
+  };
+
+  const matchesDietary = (item) => {
+    if (dietaryPref === "all") return true;
+    const dType = item.dietaryType || (item.vegetarian ? "veg" : "non-veg");
+    return dType === dietaryPref;
+  };
 
   const tableParam = params.get("table");
   const tokenParam = params.get("token");
@@ -170,6 +227,7 @@ export default function MenuPage() {
   }, [tableId, tableParam, tableSession.tableNumber, location.state, navigate]);
 
   const menuItemsFilteredBySuper = useMemo(() => {
+    if (!selectedMenuCategory) return [];
     return items.filter(item => {
       const superCat = getSuperCategoryForItem(item.category);
       return superCat === selectedMenuCategory;
@@ -178,6 +236,7 @@ export default function MenuPage() {
 
   const categories = useMemo(() => {
     const list = [{ name: "All" }];
+    if (!selectedMenuCategory) return list;
     const targetMenu = selectedMenuCategory === "Chinese Menu" ? "chinese" : "cafe";
     if (dbCategories.length > 0) {
       dbCategories.forEach((cat) => {
@@ -198,18 +257,9 @@ export default function MenuPage() {
     return list;
   }, [dbCategories, menuItemsFilteredBySuper, selectedMenuCategory]);
 
-  const [vegOnly, setVegOnly] = useState(() => localStorage.getItem("prefVegOnly") === "true");
-
-  const toggleVegOnly = () => {
-    const newVal = !vegOnly;
-    setVegOnly(newVal);
-    localStorage.setItem("prefVegOnly", String(newVal));
-    toast.success(newVal ? "Veg-only menu active" : "Showing all options");
-  };
-
   const frequentlyOrdered = useMemo(() => {
     return [...menuItemsFilteredBySuper]
-      .filter((item) => !vegOnly || item.vegetarian === true)
+      .filter(matchesDietary)
       .filter((item) => Number(item.totalQuantitySold || 0) > 0)
       .sort((a, b) => {
         const salesDiff = Number(b.totalQuantitySold || 0) - Number(a.totalQuantitySold || 0);
@@ -219,11 +269,11 @@ export default function MenuPage() {
         return Number(b.rating || 0) - Number(a.rating || 0);
       })
       .slice(0, 6);
-  }, [menuItemsFilteredBySuper, vegOnly]);
+  }, [menuItemsFilteredBySuper, dietaryPref]);
 
   const sortedFavorites = useMemo(() => {
     let base = [...menuItemsFilteredBySuper]
-      .filter(item => !vegOnly || item.vegetarian === true)
+      .filter(matchesDietary)
       .filter((item) => Number(item.totalQuantitySold || 0) > 0);
     if (favoritesSort === "today") {
       base.sort((a, b) => Number(b.rating || 4.5) - Number(a.rating || 4.5));
@@ -235,7 +285,7 @@ export default function MenuPage() {
       base.sort((a, b) => Number(b.totalQuantitySold || 0) - Number(a.totalQuantitySold || 0));
     }
     return base;
-  }, [menuItemsFilteredBySuper, favoritesSort, vegOnly]);
+  }, [menuItemsFilteredBySuper, favoritesSort, dietaryPref]);
 
   const cartTotalCount = useMemo(() => {
     return cartItems.reduce((acc, item) => acc + item.quantity, 0);
@@ -247,20 +297,22 @@ export default function MenuPage() {
 
   const groupedItems = useMemo(() => {
     const groups = {};
+    const queryWords = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
     menuItemsFilteredBySuper.forEach((item) => {
       const catName = item.category?.name || "Other";
       if (category !== "All" && catName !== category) {
         return;
       }
-      const matchesSearch = `${item.name} ${item.description || ""}`.toLowerCase().includes(search.toLowerCase());
-      const matchesVeg = !vegOnly || item.vegetarian === true;
+      const itemText = `${item.name} ${catName} ${item.description || ""}`.toLowerCase();
+      const matchesSearch = queryWords.length === 0 || queryWords.every((word) => itemText.includes(word));
+      const matchesVeg = matchesDietary(item);
       if (matchesSearch && matchesVeg) {
         if (!groups[catName]) groups[catName] = [];
         groups[catName].push(item);
       }
     });
     return groups;
-  }, [menuItemsFilteredBySuper, search, vegOnly, category]);
+  }, [menuItemsFilteredBySuper, search, dietaryPref, category]);
 
   const scrollToCategory = (catName) => {
     setCategory(catName);
@@ -398,17 +450,18 @@ export default function MenuPage() {
 
           {/* Header Right Actions */}
           <div className="flex items-center gap-2.5">
-            {/* Switch Category Button */}
-            <button
-              onClick={() => {
-                sessionStorage.removeItem("selectedMenuCategory");
-                setSelectedMenuCategory("");
-                setCategory("All");
-              }}
-              className="rounded-full bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/10 px-3 py-1.5 text-[9px] font-black text-white active:scale-95 transition-all uppercase tracking-wider"
-            >
-              Switch
-            </button>
+            {selectedMenuCategory && (
+              <button
+                onClick={() => {
+                  sessionStorage.removeItem("selectedMenuCategory");
+                  setSelectedMenuCategory("");
+                  setCategory("All");
+                }}
+                className="rounded-full bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/10 px-3 py-1.5 text-[9px] font-black text-white active:scale-95 transition-all uppercase tracking-wider"
+              >
+                Switch Menu
+              </button>
+            )}
 
             {/* Cart Icon with badge */}
             <button
@@ -427,56 +480,195 @@ export default function MenuPage() {
       </div>
 
       {/* Search Bar Container */}
-      <div className="px-4 -mt-5 relative z-20 max-w-3xl mx-auto">
-        <div className="flex gap-2 bg-white rounded-2xl shadow-md border border-neutral-100 p-1.5">
-          <label className="flex-1 flex items-center gap-2.5 px-3.5 py-2">
-            <FaSearch className="text-neutral-400 text-sm" />
-            <input
-              className="w-full bg-transparent text-xs text-neutral-800 outline-none placeholder:text-neutral-400 font-medium"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                if (event.target.value.trim() !== "") {
-                  setInitialLoad(false);
-                }
-              }}
-              placeholder="Search food, beverages, snacks..."
-            />
-          </label>
-          {/* Voice Mic Icon (UI Only) */}
-          <button
-            type="button"
-            onClick={() => toast.success("Voice search listening... (Demo)")}
-            className="h-10 w-10 rounded-xl bg-orange-600 text-white flex items-center justify-center active:scale-95 transition-transform text-sm"
-          >
-            🎤
-          </button>
+      <div className="px-4 -mt-5 relative z-40 max-w-3xl mx-auto">
+        <div className="relative">
+          <div className="flex gap-2 bg-white rounded-2xl shadow-md border border-neutral-100 p-1.5">
+            <label className="flex-1 flex items-center gap-2.5 px-3.5 py-2">
+              <FaSearch className="text-neutral-400 text-sm" />
+              <input
+                className="w-full bg-transparent text-xs text-neutral-800 outline-none placeholder:text-neutral-400 font-medium"
+                value={search}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 250)}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  if (event.target.value.trim() !== "") {
+                    setInitialLoad(false);
+                  }
+                  setShowSuggestions(true);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    addToRecentSearches(search);
+                    setShowSuggestions(false);
+                  }
+                }}
+                placeholder="Search food, beverages, snacks..."
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setShowSuggestions(false);
+                  }}
+                  className="p-1 text-neutral-400 hover:text-neutral-605 hover:text-neutral-600 active:scale-90"
+                >
+                  <FaTimes className="text-xs" />
+                </button>
+              )}
+            </label>
+            {/* Voice Mic Icon (UI Only) */}
+            <button
+              type="button"
+              onClick={() => toast.success("Voice search listening... (Demo)")}
+              className="h-10 w-10 rounded-xl bg-orange-655 bg-orange-600 text-white flex items-center justify-center active:scale-95 transition-transform text-sm"
+            >
+              🎤
+            </button>
+          </div>
+
+          {/* Suggestions Dropdown panel */}
+          {showSuggestions && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-neutral-100 z-50 overflow-hidden max-h-72 overflow-y-auto">
+              {!search.trim() ? (
+                recentSearches.length > 0 ? (
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-center justify-between text-[10px] font-black text-neutral-450 uppercase tracking-wider">
+                      <span>Recent Searches</span>
+                      <button
+                        type="button"
+                        onClick={clearRecentSearches}
+                        className="text-red-500 hover:underline bg-transparent border-0 lowercase font-extrabold"
+                      >
+                        Clear recent searches
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {recentSearches.map((s, idx) => (
+                        <button
+                          key={`recent-${idx}`}
+                          type="button"
+                          onClick={() => {
+                            setSearch(s);
+                            addToRecentSearches(s);
+                            setShowSuggestions(false);
+                          }}
+                          className="bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/60 rounded-full px-3 py-1 text-[10px] font-bold text-neutral-700 transition active:scale-95"
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-xs text-neutral-400 font-semibold">
+                    Type to search dishes or categories...
+                  </div>
+                )
+              ) : (
+                <div className="divide-y divide-neutral-50">
+                  {(() => {
+                    const queryWords = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
+                    const filteredSuggestions = menuItemsFilteredBySuper
+                      .filter(matchesDietary)
+                      .filter((item) => {
+                        const catName = item.category?.name || "";
+                        const itemText = `${item.name} ${catName} ${item.description || ""}`.toLowerCase();
+                        return queryWords.every((word) => itemText.includes(word));
+                      })
+                      .slice(0, 6);
+
+                    if (filteredSuggestions.length === 0) {
+                      return (
+                        <div className="p-4 text-center text-xs text-neutral-450 font-bold">
+                          No suggestions found
+                        </div>
+                      );
+                    }
+
+                    return filteredSuggestions.map((item) => (
+                      <div
+                        key={`sug-${item._id}`}
+                        onClick={() => {
+                          setSearch(item.name);
+                          addToRecentSearches(item.name);
+                          setShowSuggestions(false);
+                          const el = document.getElementById(`item-${item._id}`);
+                          if (el) {
+                            el.scrollIntoView({ behavior: "smooth", block: "center" });
+                            el.classList.add("bg-orange-50");
+                            setTimeout(() => el.classList.remove("bg-orange-50"), 1500);
+                          }
+                        }}
+                        className="flex items-center gap-3 p-3 hover:bg-neutral-50 cursor-pointer transition-colors duration-155"
+                      >
+                        <img
+                          src={item.imageUrl || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=80&q=80"}
+                          alt={item.name}
+                          className="w-10 h-10 rounded-lg object-cover bg-neutral-100 flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-extrabold text-neutral-800 truncate">{item.name}</p>
+                          <p className="text-[10px] text-neutral-455 truncate font-semibold">
+                            in {item.category?.name || "Other"}
+                          </p>
+                        </div>
+                        <span className="text-xs font-mono font-black text-neutral-900">
+                          ₹{item.pricingType === "half-full" ? item.fullPrice || item.price : item.singlePrice || item.price}
+                        </span>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Sticky Categories Bar */}
-      <header className="sticky top-0 z-30 bg-[#FAF9F6]/95 backdrop-blur-md border-b border-neutral-100/60 shadow-[0_2px_12px_rgba(0,0,0,0.02)] py-1 mt-2">
-        <div className="max-w-5xl mx-auto">
-          <CategoryList categories={categories} active={category} onSelect={scrollToCategory} />
-          
-          {/* Quick Filters Row */}
-          <div className="flex gap-2 px-4 py-2 border-t border-neutral-100/60 bg-white lg:hidden">
-            <button
-              onClick={toggleVegOnly}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black transition-all duration-200 border ${
-                vegOnly
-                  ? "bg-green-50 border-green-600 text-green-700 shadow-sm"
-                  : "bg-white border-neutral-200 text-neutral-500 hover:bg-neutral-50"
-              }`}
-            >
-              <span className={`w-2 h-2 rounded-full ${vegOnly ? "bg-green-600 animate-pulse" : "bg-neutral-400"}`} />
-              Veg Only
-            </button>
-
-            <div className="px-3 py-1.5 rounded-full text-[10px] font-black border border-neutral-200 text-neutral-500 bg-white ml-auto">
-              Table {tableSession.tableNumber || 1}
+      <header className="sticky top-0 z-30 bg-[#FAF9F6]/95 backdrop-blur-md border-b border-neutral-100/60 shadow-[0_2px_12px_rgba(0,0,0,0.02)] py-2 mt-2">
+        <div className="max-w-5xl mx-auto space-y-2">
+          {/* Section Indicator and Food Type Filter */}
+          <div className="flex items-center justify-between px-4 border-b border-neutral-100/40 pb-2">
+            <span className="text-xs font-black uppercase tracking-wider text-neutral-800">
+              {selectedMenuCategory === "Chinese Menu" ? "🍜 Chinese Menu" : "☕ Cafe Menu"}
+            </span>
+            {/* Food Type Selector */}
+            <div className="flex items-center gap-4">
+              {[
+                { val: "all", label: "All" },
+                { val: "veg", label: "Veg" },
+                { val: "non-veg", label: "Non Veg" }
+              ].map((pref) => {
+                const isSelected = dietaryPref === pref.val;
+                return (
+                  <label
+                    key={`header-pref-${pref.val}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDietaryChange(pref.val);
+                    }}
+                    className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-neutral-700 select-none"
+                  >
+                    <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all ${
+                      isSelected 
+                        ? "border-red-650 bg-red-650 bg-red-600 text-white" 
+                        : "border-neutral-300 hover:border-neutral-400"
+                    }`}>
+                      {isSelected && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                      )}
+                    </div>
+                    <span>{pref.label}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
+
+          <CategoryList categories={categories} active={category} onSelect={scrollToCategory} />
         </div>
       </header>
 
@@ -569,12 +761,23 @@ export default function MenuPage() {
 
               {/* Grouped Subcategory Product List */}
               {Object.keys(groupedItems).length === 0 ? (
-                <div className="py-16 text-center bg-white rounded-3xl border border-dashed border-neutral-200 p-8 max-w-xs mx-auto mt-8">
-                  <FaUtensils className="mx-auto text-3xl text-neutral-300 mb-3" />
-                  <p className="font-bold text-neutral-700 text-sm">No items found</p>
-                  <p className="text-xs text-neutral-400 mt-1 max-w-xs leading-normal">
-                    We couldn't find any dishes matching "{search}" or with your active dietary settings.
+                <div className="flex flex-col items-center justify-center text-center py-16 px-4 bg-white rounded-[32px] border border-neutral-100 shadow-sm max-w-md mx-auto mt-4">
+                  <span className="text-4xl mb-3">🍽️</span>
+                  <h3 className="text-sm font-extrabold text-neutral-800 mb-1">No menu items found.</h3>
+                  <p className="text-xs text-neutral-400 font-medium max-w-xs mb-5">
+                    We couldn't find any dishes matching your active search, category, or dietary settings.
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCategory("All");
+                      changeDietaryPref("all");
+                      setSearch("");
+                    }}
+                    className="rounded-xl bg-orange-655 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 text-xs font-black transition-all active:scale-95 shadow-sm"
+                  >
+                    Reset Filters
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -612,19 +815,39 @@ export default function MenuPage() {
               {/* Veg Toggle & Table ID Panel */}
               <div className="bg-white border border-neutral-100 rounded-3xl p-5 shadow-sm space-y-4">
                 <h3 className="text-sm font-black text-neutral-800 uppercase tracking-wider border-b border-neutral-50 pb-2">Preferences</h3>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-neutral-500 font-bold">Dietary preference</span>
-                  <button
-                    onClick={toggleVegOnly}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black transition-all duration-200 border ${
-                      vegOnly
-                        ? "bg-green-50 border-green-600 text-green-700 shadow-sm"
-                        : "bg-white border-neutral-200 text-neutral-500 hover:bg-neutral-50"
-                    }`}
-                  >
-                    <span className={`w-2 h-2 rounded-full ${vegOnly ? "bg-green-600 animate-pulse" : "bg-neutral-400"}`} />
-                    Veg Only
-                  </button>
+                <div className="space-y-3">
+                  <span className="text-xs text-neutral-550 text-neutral-500 font-bold block mb-2">Dietary Preference</span>
+                  <div className="flex flex-col gap-2.5">
+                    {[
+                      { val: "all", label: "All Items" },
+                      { val: "veg", label: "Veg Only" },
+                      { val: "non-veg", label: "Non Veg Only" },
+                      { val: "egg", label: "Egg Only" }
+                    ].map((pref) => {
+                      const isSelected = dietaryPref === pref.val;
+                      return (
+                        <label
+                          key={`desk-pref-${pref.val}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleDietaryChange(pref.val);
+                          }}
+                          className="flex items-center gap-3 cursor-pointer group text-xs font-semibold text-neutral-700 select-none py-1"
+                        >
+                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all flex-shrink-0 ${
+                            isSelected 
+                              ? "border-neutral-900 bg-neutral-900 text-white" 
+                              : "border-neutral-300 group-hover:border-neutral-400"
+                          }`}>
+                            {isSelected && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                            )}
+                          </div>
+                          <span>{pref.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div className="flex items-center justify-between border-t border-neutral-50 pt-3">
                   <span className="text-xs text-neutral-500 font-bold">Your Table</span>

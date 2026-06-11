@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { FaLock, FaUserShield, FaEnvelope } from "react-icons/fa";
@@ -11,14 +11,51 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      const destination = user.role === "admin"
+        ? "/admin"
+        : user.role === "chef"
+          ? "/chef"
+          : user.role === "waiter"
+            ? "/waiter"
+            : "/scan";
+      navigate(destination, { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
   const submit = async (event) => {
     event.preventDefault();
+    
+    // Trim spaces
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
+    // Check empty email
+    if (!trimmedEmail) {
+      toast.error("Please enter your email.");
+      return;
+    }
+
+    // Email validation regex (standard format user@example.com)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    // Check empty password
+    if (!trimmedPassword) {
+      toast.error("Please enter your password.");
+      return;
+    }
+
     console.log("[LOADING STATE] LoginPage loading: true");
     setLoading(true);
     try {
-      const res = await loginRequest({ email, password });
+      const res = await loginRequest({ email: trimmedEmail, password: trimmedPassword });
       login(res.data);
       toast.success("Signed in successfully");
       const destination = res.data.user.role === "admin"
@@ -30,7 +67,11 @@ export default function LoginPage() {
             : "/scan";
       navigate(destination, { replace: true });
     } catch (error) {
-      toast.error(error.response?.data?.message || "Login failed");
+      if (error.response?.data?.errors && error.response.data.errors.length > 0) {
+        toast.error(error.response.data.errors[0]);
+      } else {
+        toast.error(error.response?.data?.message || "Login failed");
+      }
     } finally {
       console.log("[LOADING STATE] LoginPage loading: false");
       setLoading(false);

@@ -1,29 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { 
-  FaFire, FaSyncAlt, FaSignOutAlt, FaChartPie, FaHistory, 
-  FaUtensils, FaCoins, FaInfoCircle, FaClipboardList, 
-  FaTags, FaSearch, FaCreditCard, FaChartLine 
+  FaFire, FaSyncAlt, FaSignOutAlt, FaHistory, 
+  FaUtensils, FaInfoCircle, FaClipboardList, 
+  FaTags, FaSearch, FaPlus 
 } from "react-icons/fa";
 import { getOrders, updateOrderStatus } from "../../services/orderService";
-import { getDashboardStats } from "../../services/salesService";
 import { getMenu } from "../../services/menuService";
 import OrderCard from "../../components/chef/OrderCard";
 import { useSocket } from "../../hooks/useSocket";
 import { useAuth } from "../../hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
+import ManualOrderModal from "../../components/common/ManualOrderModal";
 
 export default function ChefDashboard() {
   const [orders, setOrders] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
-  const [stats, setStats] = useState({
-    today: { todayRevenue: 0, todayOrders: 0, pendingOrders: 0 },
-    topItems: [],
-    timeline: [],
-    monthlyRevenue: 0,
-    totalOrders: 0,
-    activeTables: 0
-  });
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("kds"); // "kds", "history", "analytics"
@@ -38,12 +31,8 @@ export default function ChefDashboard() {
     console.log("[LOADING STATE] ChefDashboard refresh start");
     setLoading(true);
     try {
-      const [ordersRes, statsRes, menuRes] = await Promise.all([
+      const [ordersRes, menuRes] = await Promise.all([
         getOrders(),
-        getDashboardStats().catch(err => {
-          console.warn("Failed to load dashboard stats for Chef:", err.message);
-          return { data: null };
-        }),
         getMenu().catch(err => {
           console.warn("Failed to load menu list for Chef:", err.message);
           return { data: [] };
@@ -57,11 +46,6 @@ export default function ChefDashboard() {
         : [];
       
       setOrders(fetchedOrders);
-
-      if (statsRes.data) {
-        setStats(statsRes.data);
-      }
-
       setMenuItems(menuRes.data || []);
     } catch (error) {
       console.error("[ChefDashboard] refresh error:", error);
@@ -270,20 +254,16 @@ export default function ChefDashboard() {
           >
             <FaHistory /> Order History
           </button>
-          <button 
-            onClick={() => setActiveTab("analytics")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition ${
-              activeTab === "analytics" 
-                ? "bg-red-600 text-white shadow-sm" 
-                : "text-neutral-500 hover:text-neutral-800"
-            }`}
-          >
-            <FaChartPie /> Reports & Analytics
-          </button>
         </div>
 
         {/* Action Controls */}
         <div className="flex gap-2">
+          <button 
+            onClick={() => setIsOrderModalOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 text-xs font-black uppercase tracking-wider shadow-sm transition"
+          >
+            <FaPlus /> Place Order
+          </button>
           <button 
             onClick={refreshData} 
             className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-neutral-200 bg-white hover:bg-neutral-50 px-4 py-2.5 text-xs font-bold shadow-sm transition"
@@ -319,9 +299,9 @@ export default function ChefDashboard() {
             <p className="text-[9px] font-bold text-indigo-500 mt-1 uppercase">Served / Paid Orders</p>
           </div>
           <div className="rounded-3xl border border-emerald-200 bg-emerald-50/20 p-5 shadow-sm">
-            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Revenue Today</span>
-            <p className="mt-2 text-3xl font-black text-emerald-800">₹{calculatedMetrics.revenueToday.toFixed(2)}</p>
-            <p className="text-[9px] font-bold text-emerald-500 mt-1 uppercase">Total Completed Value</p>
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Active Orders</span>
+            <p className="mt-2 text-3xl font-black text-emerald-800">{calculatedMetrics.activeOrders.length}</p>
+            <p className="text-[9px] font-bold text-emerald-500 mt-1 uppercase">Cooking & Preparing</p>
           </div>
         </div>
 
@@ -448,214 +428,15 @@ export default function ChefDashboard() {
               </motion.div>
             )}
 
-            {/* REPORTS & ANALYTICS TAB */}
-            {activeTab === "analytics" && (
-              <motion.div 
-                key="analytics-tab"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="grid gap-6 lg:grid-cols-[1.3fr_.7fr]"
-              >
-                {/* Left Side Analytics Panels */}
-                <div className="space-y-6">
-                  {/* Revenue Summary Panel */}
-                  <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm space-y-5">
-                    <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
-                      <div>
-                        <h3 className="font-black text-neutral-800 flex items-center gap-2">
-                          <FaCoins className="text-red-500" /> Revenue Summary Statistics
-                        </h3>
-                        <p className="text-[10px] text-neutral-400 font-bold mt-0.5">Revenue calculated from Completed & Paid orders</p>
-                      </div>
-                      <span className="text-[10px] font-black uppercase text-red-600 bg-red-50 border border-red-100 px-2.5 py-1 rounded-full">Real-time</span>
-                    </div>
-
-                    <div className="grid gap-4 sm:grid-cols-3">
-                      <div className="border border-neutral-100 rounded-2xl p-4 bg-neutral-50/50">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-neutral-400">Daily Revenue</span>
-                        <p className="mt-2 text-xl font-black text-neutral-800">₹{calculatedMetrics.revenueToday.toFixed(2)}</p>
-                        <p className="text-[8px] font-bold text-neutral-400 mt-1 uppercase">Today's total sales</p>
-                      </div>
-                      <div className="border border-neutral-100 rounded-2xl p-4 bg-neutral-50/50">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-neutral-400">Weekly Revenue</span>
-                        <p className="mt-2 text-xl font-black text-neutral-800">₹{calculatedMetrics.revenueWeekly.toFixed(2)}</p>
-                        <p className="text-[8px] font-bold text-neutral-400 mt-1 uppercase">Last 7 days sales</p>
-                      </div>
-                      <div className="border border-neutral-100 rounded-2xl p-4 bg-neutral-50/50">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-neutral-400">Monthly Revenue</span>
-                        <p className="mt-2 text-xl font-black text-neutral-800">₹{calculatedMetrics.revenueMonthly.toFixed(2)}</p>
-                        <p className="text-[8px] font-bold text-neutral-400 mt-1 uppercase">Last 30 days sales</p>
-                      </div>
-                    </div>
-
-                    {/* Timeline Graph */}
-                    <div className="mt-6 border-t border-neutral-100 pt-5">
-                      <h4 className="text-xs font-black text-neutral-700 uppercase tracking-wider mb-4">Daily Sales Trend (Last 7 Days)</h4>
-                      <div className="flex h-56 items-end gap-3 md:gap-5 px-2">
-                        {stats.timeline?.slice(-7).map((day, index) => {
-                          const maxRevenue = Math.max(...(stats.timeline?.map(t => t.total) || [1]), 1);
-                          const height = (day.total / maxRevenue) * 100;
-                          return (
-                            <div key={index} className="flex flex-1 flex-col items-center gap-1.5 group relative cursor-pointer">
-                              <div 
-                                className="w-full rounded-t-xl bg-gradient-to-t from-red-600 to-red-400 transition-all hover:brightness-105 shadow-sm"
-                                style={{ height: `${Math.max(height, 5)}%` }}
-                              />
-                              <span className="text-[9px] text-neutral-400 font-bold">{day._id.slice(-5)}</span>
-                              
-                              {/* Hover Tooltip */}
-                              <div className="absolute -top-12 scale-0 group-hover:scale-100 transition-transform duration-100 bg-neutral-900 text-white p-2 rounded-xl text-[9px] text-center z-10 w-max border border-neutral-800 shadow-md">
-                                <p className="font-bold text-red-400">₹{day.total.toFixed(2)}</p>
-                                <p className="text-[8px] opacity-65">{day.count} orders</p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        {(!stats.timeline || stats.timeline.length === 0) && (
-                          <div className="w-full text-center text-neutral-400 py-10 font-bold">
-                            No sales trend data available.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Best Selling Items Table */}
-                  <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4">
-                    <h3 className="font-black text-neutral-800 flex items-center gap-2 border-b border-neutral-100 pb-3">
-                      <FaChartLine className="text-red-500" /> Best Selling Items
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs font-bold text-neutral-500">
-                        <thead className="text-[10px] uppercase tracking-wider text-neutral-400 border-b border-neutral-100">
-                          <tr>
-                            <th className="pb-2">Item Name</th>
-                            <th className="pb-2 text-center">Qty Sold</th>
-                            <th className="pb-2 text-right">Revenue Generated</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-neutral-100">
-                          {stats.topItems?.slice(0, 5).map((item) => (
-                            <tr key={item._id} className="text-neutral-600 font-semibold hover:bg-neutral-50/50 transition-colors">
-                              <td className="py-3 font-black text-neutral-800">{item._id}</td>
-                              <td className="py-3 text-center">{item.totalQty}</td>
-                              <td className="py-3 text-right font-mono font-black text-red-600">₹{item.totalRevenue.toFixed(2)}</td>
-                            </tr>
-                          ))}
-                          {(!stats.topItems || stats.topItems.length === 0) && (
-                            <tr>
-                              <td colSpan={3} className="text-center py-6 text-neutral-400 font-bold">
-                                No menu items sales recorded yet.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Side Analytics Panels */}
-                <div className="space-y-6">
-                  {/* Category Breakdown Panel */}
-                  <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4">
-                    <h3 className="font-black text-neutral-800 flex items-center gap-2 border-b border-neutral-100 pb-3">
-                      <FaTags className="text-red-500" /> Most Ordered Categories
-                    </h3>
-                    <div className="space-y-3.5">
-                      {calculatedMetrics.mostOrderedCategories.slice(0, 6).map((cat, idx) => {
-                        const maxQty = Math.max(...calculatedMetrics.mostOrderedCategories.map(c => c.qty), 1);
-                        const percent = (cat.qty / maxQty) * 100;
-                        return (
-                          <div key={cat.name} className="space-y-1.5">
-                            <div className="flex justify-between text-xs font-black text-neutral-700">
-                              <span>{cat.name}</span>
-                              <span className="text-neutral-500">{cat.qty} items</span>
-                            </div>
-                            <div className="w-full bg-neutral-150 h-2 rounded-full overflow-hidden">
-                              <div 
-                                className="bg-gradient-to-r from-red-500 to-red-600 h-full rounded-full transition-all duration-300"
-                                style={{ width: `${percent}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {calculatedMetrics.mostOrderedCategories.length === 0 && (
-                        <div className="text-center text-neutral-400 py-6 font-bold text-xs">
-                          No category statistics available.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Payment Status Overview */}
-                  <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4">
-                    <h3 className="font-black text-neutral-800 flex items-center gap-2 border-b border-neutral-100 pb-3">
-                      <FaCreditCard className="text-red-500" /> Payment Status Overview
-                    </h3>
-                    <div className="space-y-4">
-                      {/* Paid Progress bar info */}
-                      <div className="flex items-center justify-between border-b border-neutral-50 pb-2.5 text-xs font-bold">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-                          <span className="text-neutral-600">Paid Bills ({calculatedMetrics.paymentStatus.paidCount})</span>
-                        </div>
-                        <span className="font-black text-neutral-800">₹{calculatedMetrics.paymentStatus.paidSum.toFixed(2)}</span>
-                      </div>
-                      
-                      {/* Unpaid Progress bar info */}
-                      <div className="flex items-center justify-between border-b border-neutral-50 pb-2.5 text-xs font-bold">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
-                          <span className="text-neutral-600">Pending Bills ({calculatedMetrics.paymentStatus.unpaidCount})</span>
-                        </div>
-                        <span className="font-black text-neutral-800">₹{calculatedMetrics.paymentStatus.unpaidSum.toFixed(2)}</span>
-                      </div>
-
-                      {/* Total progress calculation */}
-                      <div className="pt-2 text-xs text-neutral-400 font-bold flex justify-between uppercase tracking-wider">
-                        <span>Total Active Turnover</span>
-                        <span className="text-neutral-700 font-black">
-                          ₹{(calculatedMetrics.paymentStatus.paidSum + calculatedMetrics.paymentStatus.unpaidSum).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Mini Recent Orders Feed */}
-                  <div className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4">
-                    <h3 className="font-black text-neutral-800 flex items-center gap-2 border-b border-neutral-100 pb-3">
-                      <FaClipboardList className="text-red-500" /> Recent Activity Log
-                    </h3>
-                    <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
-                      {calculatedMetrics.recentOrders.map((o) => (
-                        <div key={o._id} className="flex justify-between items-center rounded-2xl bg-neutral-50 border border-neutral-100 p-3 text-xs font-semibold">
-                          <div>
-                            <span className="block font-black text-neutral-800">Table {o.tableNumber}</span>
-                            <span className="text-[10px] text-neutral-400 font-bold block mt-0.5">
-                              ID: #{o._id.slice(-6)} • {new Date(o.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                            </span>
-                          </div>
-                          <span className="text-[9px] px-2 py-0.5 rounded-full border font-bold bg-white text-neutral-500 border-neutral-200 uppercase">
-                            {o.status}
-                          </span>
-                        </div>
-                      ))}
-                      {calculatedMetrics.recentOrders.length === 0 && (
-                        <div className="text-center text-neutral-400 py-6 font-bold text-xs">
-                          No order activity logged.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
           </AnimatePresence>
         )}
       </div>
+
+      <ManualOrderModal
+        isOpen={isOrderModalOpen}
+        onClose={() => setIsOrderModalOpen(false)}
+        onSuccess={refreshData}
+      />
     </section>
   );
 }

@@ -38,7 +38,8 @@ const emptyForm = {
   pricingType: "single",
   singlePrice: "",
   halfPrice: "",
-  fullPrice: ""
+  fullPrice: "",
+  dietaryType: "veg"
 };
 
 export default function MenuManagement() {
@@ -110,7 +111,8 @@ export default function MenuManagement() {
       pricingType: item.pricingType || "single",
       singlePrice: item.singlePrice ?? item.price ?? "",
       halfPrice: item.halfPrice ?? "",
-      fullPrice: item.fullPrice ?? ""
+      fullPrice: item.fullPrice ?? "",
+      dietaryType: item.dietaryType || (item.vegetarian ? "veg" : "non-veg")
     });
   };
 
@@ -142,7 +144,9 @@ export default function MenuManagement() {
         halfPrice: form.pricingType === "half-full" ? Number(form.halfPrice) : null,
         fullPrice: form.pricingType === "half-full" ? Number(form.fullPrice) : Number(form.singlePrice),
         price: form.pricingType === "single" ? Number(form.singlePrice) : Number(form.fullPrice),
-        available: true
+        available: true,
+        dietaryType: form.dietaryType || "veg",
+        vegetarian: (form.dietaryType || "veg") === "veg"
       };
 
       if (editingId) {
@@ -529,6 +533,29 @@ export default function MenuManagement() {
           </div>
 
           <div>
+            <label className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-2">Food Type</label>
+            <div className="flex gap-4">
+              {[
+                { val: "veg", label: "🟢 Veg" },
+                { val: "non-veg", label: "🔴 Non Veg" },
+                { val: "egg", label: "🟡 Egg" }
+              ].map((opt) => (
+                <label key={opt.val} className="flex items-center gap-2 text-xs font-bold text-neutral-700 cursor-pointer select-none">
+                  <input
+                    type="radio"
+                    name="dietaryType"
+                    value={opt.val}
+                    checked={(form.dietaryType || "veg") === opt.val}
+                    onChange={(e) => setForm({ ...form, dietaryType: e.target.value })}
+                    className="accent-red-600 w-4 h-4 cursor-pointer"
+                  />
+                  <span>{opt.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
             {form.pricingType === "single" ? (
               <div>
                 <label htmlFor="formSinglePrice" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">Price (₹)</label>
@@ -698,7 +725,15 @@ export default function MenuManagement() {
                           />
                         </td>
                         <td className="py-3 px-2">
-                          <div className="font-black text-neutral-800 leading-tight">{item.name}</div>
+                          <div className="font-black text-neutral-800 leading-tight flex items-center gap-1.5">
+                            {item.name}
+                            {(() => {
+                              const d = item.dietaryType || (item.vegetarian ? "veg" : "non-veg");
+                              if (d === "veg") return <span className="text-[10px]" title="Veg">🟢</span>;
+                              if (d === "egg") return <span className="text-[10px]" title="Egg">🟡</span>;
+                              return <span className="text-[10px]" title="Non Veg">🔴</span>;
+                            })()}
+                          </div>
                           <div className="text-[10px] font-mono text-neutral-400 mt-0.5 uppercase">
                             CODE: T-{item._id?.substring(item._id.length - 6).toUpperCase()}
                           </div>
