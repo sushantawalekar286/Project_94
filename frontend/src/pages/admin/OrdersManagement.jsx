@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getOrders, updateOrderStatus } from "../../services/orderService";
+import { getOrders, updateOrderStatus, updateOrderItemStatus, cancelOrder, cancelOrderItem } from "../../services/orderService";
 import StatusBadge from "../../components/chef/StatusBadge";
 import { FaClock, FaUtensils, FaSearch, FaUser, FaChevronLeft, FaChevronRight, FaPrint, FaBan, FaCheck, FaSync, FaPlus } from "react-icons/fa";
 import toast from "react-hot-toast";
@@ -70,6 +70,42 @@ export default function OrdersManagement() {
     } catch (err) {
       toast.error("Failed to update status");
       console.error(err);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    const reason = prompt(
+      "Enter cancellation reason (e.g. Customer Request, Wrong Order, Duplicate Order, Table Left, Admin Decision, Other):",
+      "Customer Request"
+    );
+    if (reason === null) return;
+    setUpdatingId(orderId);
+    try {
+      await cancelOrder(orderId, reason);
+      toast.success("Order cancelled successfully");
+      fetchOrders();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to cancel order");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleCancelOrderItem = async (orderId, itemId, itemName) => {
+    const reason = prompt(
+      `Enter cancellation reason for "${itemName}" (e.g. Customer Request, Wrong Order, Duplicate Order):`,
+      "Customer Request"
+    );
+    if (reason === null) return;
+    setUpdatingId(orderId);
+    try {
+      await cancelOrderItem(orderId, itemId, reason);
+      toast.success(`Item "${itemName}" cancelled successfully`);
+      fetchOrders();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to cancel item");
     } finally {
       setUpdatingId(null);
     }
@@ -297,21 +333,125 @@ export default function OrdersManagement() {
                 </div>
               </div>
 
-              {/* Items Summary Grid */}
-              <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {order.items?.map((item, idx) => (
-                  <div 
-                    key={idx} 
-                    className="rounded-2xl border border-neutral-150 bg-neutral-50/50 px-4 py-3 text-xs font-bold text-neutral-700 flex justify-between items-center"
-                  >
-                    <span className="truncate pr-2">
-                      {item.name} {item.portionType && item.portionType !== 'single' ? `(${item.portionType})` : ''}
-                    </span>
-                    <span className="text-red-600 bg-red-50 border border-red-100/50 text-[10px] font-black px-2 py-0.5 rounded-full whitespace-nowrap">
-                      x{item.quantity}
-                    </span>
-                  </div>
-                ))}
+              {/* Items Summary Checklist */}
+              <div className="mt-4 space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-wider text-neutral-450">Order Items Checklist</p>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {order.items?.map((item, idx) => {
+                    const isPrepared = item.kitchenStatus === "ready";
+                    const isServed = item.served;
+                    const isClosedOrder = ["Served", "Completed", "Paid", "Cancelled"].includes(order.status);
+                    const isCancelledOrder = order.status === "Cancelled";
+                    
+                    const showPrepareCheckbox = !isClosedOrder && !isPrepared;
+                    const showServeCheckbox = isPrepared && !isServed && !isClosedOrder;
+
+                    const handleTogglePrepared = async () => {
+                      const newStatus = isPrepared ? "pending" : "ready";
+                      try {
+                        await updateOrderItemStatus(order._id, idx, { kitchenStatus: newStatus });
+                        toast.success(`Item "${item.name}" marked ${newStatus}`);
+                        fetchOrders();
+                      } catch (err) {
+                        toast.error(err.response?.data?.message || "Failed to update prepared status");
+                      }
+                    };
+
+                    const handleToggleServed = async () => {
+                      const newServed = !isServed;
+                      try {
+                        await updateOrderItemStatus(order._id, idx, { served: newServed });
+                        toast.success(`Item "${item.name}" marked ${newServed ? "served" : "unserved"}`);
+                        fetchOrders();
+                      } catch (err) {
+                        toast.error(err.response?.data?.message || "Failed to update served status");
+                      }
+                    };
+
+                    return (
+                      <div 
+                        key={idx} 
+                        className="rounded-2xl border border-neutral-200 bg-neutral-50/50 p-4 text-xs font-bold text-neutral-700 flex flex-col justify-between"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-black text-neutral-800">{item.name} {item.portionType !== 'single' ? `(${item.portionType})` : ''}</p>
+                            <p className="text-[10px] text-neutral-405 font-bold mt-0.5">Qty: x{item.quantity} · ₹{item.price?.toFixed(2)}</p>
+                          </div>
+                                         <span className={`px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-wider whitespace-nowrap ${
+                            isCancelledOrder || item.cancelled
+                              ? "bg-red-50 text-red-700 border border-red-200"
+                              : isServed 
+                              ? "bg-blue-50 text-blue-700 border border-blue-200"
+                              : isPrepared
+                              ? "bg-green-50 text-green-700 border border-green-200"
+                              : "bg-amber-50 text-amber-700 border border-amber-200"
+                          }`}>
+                            {isCancelledOrder || item.cancelled
+                              ? "🔴 Cancelled"
+                              : isServed 
+                              ? "🔵 Served"
+                              : isPrepared
+                              ? "🟢 Ready"
+                              : "🟡 Pending"}
+                          </span>
+                        </div>
+
+                        {/* Checklist controls */}
+                        {(showPrepareCheckbox || showServeCheckbox || (!isServed && !item.cancelled && !isClosedOrder)) && (
+                          <div className="mt-3 pt-3 border-t border-neutral-200/50 flex flex-col gap-2">
+                            <div className="flex justify-between gap-4">
+                              {showPrepareCheckbox ? (
+                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={isPrepared}
+                                    onChange={handleTogglePrepared}
+                                    className="h-4 w-4 rounded border-neutral-300 text-red-650 focus:ring-red-500 cursor-pointer"
+                                  />
+                                  <span className="text-[10px] font-bold text-neutral-500">Prepared</span>
+                                </label>
+                              ) : <div />}
+                              
+                              {showServeCheckbox ? (
+                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={isServed}
+                                    onChange={handleToggleServed}
+                                    className="h-4 w-4 rounded border-neutral-300 text-red-655 focus:ring-red-500 cursor-pointer"
+                                  />
+                                  <span className="text-[10px] font-bold text-neutral-500">Served</span>
+                                </label>
+                              ) : <div />}
+                            </div>
+
+                            {!isServed && !item.cancelled && !isClosedOrder && (
+                              <button
+                                onClick={() => handleCancelOrderItem(order._id, idx, item.name)}
+                                className="w-full text-center text-red-650 hover:text-red-800 text-[10px] font-black uppercase tracking-wider border border-red-100 bg-red-50/50 py-1.5 rounded-lg transition-all"
+                              >
+                                <FaBan size={8} className="inline mr-1" /> Cancel Item
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Timestamps */}
+                        {(item.preparedAt || item.servedAt) && (
+                          <div className="mt-2.5 pt-2 border-t border-neutral-250/20 flex flex-col gap-0.5 text-[8.5px] text-neutral-400 font-semibold leading-normal">
+                            {item.preparedAt && (
+                              <span>Prepared: {new Date(item.preparedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                            )}
+                            {item.servedAt && (
+                              <span>Served: {new Date(item.servedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Bottom Details (Total & Admin Actions) */}
@@ -337,22 +477,23 @@ export default function OrdersManagement() {
 
                   {/* Dynamic Workflow Actions */}
                   {isPending && (
-                    <>
-                      <button 
-                        disabled={updatingId === order._id}
-                        onClick={() => handleStatusUpdate(order._id, "Accepted")}
-                        className="flex items-center gap-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider py-2.5 px-4 bg-red-50 border border-red-100 text-red-600 hover:bg-red-100 transition"
-                      >
-                        <FaCheck /> Accept
-                      </button>
-                      <button 
-                        disabled={updatingId === order._id}
-                        onClick={() => handleStatusUpdate(order._id, "Cancelled")}
-                        className="flex items-center gap-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider py-2.5 px-4 bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 transition"
-                      >
-                        <FaBan /> Cancel
-                      </button>
-                    </>
+                    <button 
+                      disabled={updatingId === order._id}
+                      onClick={() => handleStatusUpdate(order._id, "Accepted")}
+                      className="flex items-center gap-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider py-2.5 px-4 bg-red-50 border border-red-100 text-red-600 hover:bg-red-100 transition"
+                    >
+                      <FaCheck /> Accept
+                    </button>
+                  )}
+
+                  {!["Served", "Completed", "Paid", "Cancelled"].includes(order.status) && (
+                    <button 
+                      disabled={updatingId === order._id}
+                      onClick={() => handleCancelOrder(order._id)}
+                      className="flex items-center gap-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider py-2.5 px-4 bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 transition"
+                    >
+                      <FaBan /> Cancel Order
+                    </button>
                   )}
 
                   {isCooking && (

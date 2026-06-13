@@ -196,6 +196,21 @@ export default function MenuManagement() {
     }
   };
 
+  const handleMenuItemFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Image file size should be less than 2MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setForm((prev) => ({ ...prev, imageUrl: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleCategorySubmit = async (e) => {
     e.preventDefault();
     if (!catForm.name.trim()) return toast.error("Category name is required");
@@ -490,15 +505,39 @@ export default function MenuManagement() {
           </div>
 
           <div>
-            <label htmlFor="formImage" className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">Image URL</label>
-            <input
-              id="formImage"
-              className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-800 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 font-medium"
-              placeholder="Paste unsplash food image link..."
-              value={form.imageUrl}
-              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-              type="text"
-            />
+            <label className="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1.5">
+              Image Upload / URL
+            </label>
+            <div className="flex flex-col gap-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleMenuItemFileChange}
+                className="block w-full text-xs text-neutral-500 file:mr-4 file:py-1.5 file:px-3.5 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-neutral-200 file:text-neutral-700 hover:file:bg-neutral-300 cursor-pointer"
+              />
+              <span className="text-[9px] text-neutral-400 font-bold text-center">- OR -</span>
+              <input
+                id="formImage"
+                className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl text-sm text-neutral-800 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 font-medium"
+                placeholder="Paste food image link..."
+                value={form.imageUrl}
+                onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                type="text"
+              />
+            </div>
+            {form.imageUrl && (
+              <div className="flex items-center gap-3 bg-neutral-50 border border-neutral-100 p-2 mt-2 rounded-2xl w-fit">
+                <img
+                  src={form.imageUrl}
+                  alt="Menu Preview"
+                  className="h-10 w-10 rounded-xl object-cover border border-neutral-100 shadow-sm"
+                  onError={(e) => {
+                    e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80";
+                  }}
+                />
+                <span className="text-[10px] text-neutral-400 font-bold">Image Preview</span>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">

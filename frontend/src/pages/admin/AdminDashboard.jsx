@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { FaArrowTrendUp, FaBurger, FaClipboardCheck, FaMoneyBillWave, FaUtensils, FaClock } from "react-icons/fa6";
+import { FaCheckCircle } from "react-icons/fa";
 import { getOrders } from "../../services/orderService";
 import { getDashboardStats } from "../../services/salesService";
+import { getTodayDashboardStats } from "../../services/dashboardService";
 import { useSocket } from "../../hooks/useSocket";
 import toast from "react-hot-toast";
 import { getExpenseSummary } from "../../services/expenseService";
@@ -17,6 +19,15 @@ export default function AdminDashboard() {
     monthlyRevenue: 0,
     totalOrders: 0,
     activeTables: 0
+  });
+  const [todayStats, setTodayStats] = useState({
+    revenue: 0,
+    orders: 0,
+    pendingOrders: 0,
+    completedOrders: 0,
+    activeTables: 0,
+    topItems: [],
+    categorySales: []
   });
   const [expenseSummary, setExpenseSummary] = useState({ monthTotal: 0, todayTotal: 0, weekTotal: 0, monthlySeries: [] });
   const [loading, setLoading] = useState(true);
@@ -48,6 +59,22 @@ export default function AdminDashboard() {
     throw err;
   });
 
+  const refreshTodayStats = () => getTodayDashboardStats().then((res) => {
+    const d = res.data?.data || res.data || {};
+    setTodayStats({
+      revenue: d.revenue || 0,
+      orders: d.orders || 0,
+      pendingOrders: d.pendingOrders || 0,
+      completedOrders: d.completedOrders || 0,
+      activeTables: d.activeTables || 0,
+      topItems: d.topItems || [],
+      categorySales: d.categorySales || []
+    });
+  }).catch((err) => {
+    console.error("[AdminDashboard] Error refreshing today stats:", err);
+    throw err;
+  });
+
   const refreshExpenses = () => getExpenseSummary().then((res) => {
     const d = res.data || {};
     setExpenseSummary({
@@ -64,7 +91,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([refreshOrders(), refreshStats(), refreshExpenses()])
+    Promise.all([refreshOrders(), refreshStats(), refreshTodayStats(), refreshExpenses()])
       .then(() => setError(false))
       .catch((err) => {
         console.error("[AdminDashboard] Mount data fetch failed:", err.message);
@@ -75,6 +102,14 @@ export default function AdminDashboard() {
       });
   }, []);
 
+  // Today live stats polling every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshTodayStats().catch(() => {});
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     if (!socket) return;
     socket.emit("join:admin");
@@ -83,16 +118,19 @@ export default function AdminDashboard() {
       toast.success("New order received");
       refreshOrders().catch(() => {});
       refreshStats().catch(() => {});
+      refreshTodayStats().catch(() => {});
     };
     
     const handleOrderUpdate = () => {
       refreshOrders().catch(() => {});
       refreshStats().catch(() => {});
+      refreshTodayStats().catch(() => {});
     };
     
     const handleExpenseCreated = () => {
       refreshExpenses().catch(() => {});
       refreshStats().catch(() => {});
+      refreshTodayStats().catch(() => {});
     };
 
     socket.on("order:new", handleNewOrder);
@@ -162,14 +200,170 @@ export default function AdminDashboard() {
     <section className="min-h-screen bg-[#FAF9F6] px-4 py-8 text-neutral-800 sm:px-8">
       
       {/* Header */}
-      <header className="mb-8">
-        <p className="text-xs uppercase tracking-[0.24em] text-red-600 font-black">
-          94 Cafe & Chinese Portal
-        </p>
-        <h1 className="mt-1 text-3xl font-black text-neutral-800 leading-tight tracking-tight">
-          Admin Overview
-        </h1>
+      <header className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.24em] text-red-600 font-black">
+            94 Cafe & Chinese Portal
+          </p>
+          <h1 className="mt-1 text-3xl font-black text-neutral-800 leading-tight tracking-tight">
+            Admin Overview
+          </h1>
+        </div>
       </header>
+
+      {/* TODAY'S LIVE OPERATIONS DASHBOARD */}
+      <div className="mb-8 rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h2 className="text-base font-black text-neutral-800 tracking-tight flex items-center gap-2">
+            <span>Today's Live Operations Feed</span>
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+          </h2>
+          <span className="self-start sm:self-auto text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5 uppercase tracking-wider">
+            Live auto-refresh active (30s)
+          </span>
+        </div>
+
+        {/* Live Metrics Grid */}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+          <motion.article 
+            whileHover={{ y: -4 }}
+            className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/50 to-emerald-100/10 p-5 shadow-sm"
+          >
+            <div className="flex justify-between items-start text-emerald-700">
+              <span className="text-[10px] font-black uppercase tracking-wider opacity-80">Today's Revenue</span>
+              <FaMoneyBillWave className="text-base opacity-90" />
+            </div>
+            <p className="mt-4 text-2xl font-black text-neutral-850 tracking-tight">
+              ₹{(todayStats.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </motion.article>
+
+          <motion.article 
+            whileHover={{ y: -4 }}
+            className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/50 to-blue-100/10 p-5 shadow-sm"
+          >
+            <div className="flex justify-between items-start text-blue-700">
+              <span className="text-[10px] font-black uppercase tracking-wider opacity-80">Today's Orders</span>
+              <FaClipboardCheck className="text-base opacity-90" />
+            </div>
+            <p className="mt-4 text-2xl font-black text-neutral-850 tracking-tight">
+              {todayStats.orders || 0}
+            </p>
+          </motion.article>
+
+          <motion.article 
+            whileHover={{ y: -4 }}
+            className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50/50 to-amber-100/10 p-5 shadow-sm"
+          >
+            <div className="flex justify-between items-start text-amber-700">
+              <span className="text-[10px] font-black uppercase tracking-wider opacity-80">Pending Orders</span>
+              <FaClock className="text-base opacity-90" />
+            </div>
+            <p className="mt-4 text-2xl font-black text-neutral-850 tracking-tight">
+              {todayStats.pendingOrders || 0}
+            </p>
+          </motion.article>
+
+          <motion.article 
+            whileHover={{ y: -4 }}
+            className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50/50 to-teal-100/10 p-5 shadow-sm"
+          >
+            <div className="flex justify-between items-start text-teal-700">
+              <span className="text-[10px] font-black uppercase tracking-wider opacity-80">Completed Orders</span>
+              <FaCheckCircle className="text-base opacity-90" />
+            </div>
+            <p className="mt-4 text-2xl font-black text-neutral-850 tracking-tight">
+              {todayStats.completedOrders || 0}
+            </p>
+          </motion.article>
+
+          <motion.article 
+            whileHover={{ y: -4 }}
+            className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50/50 to-purple-100/10 p-5 shadow-sm"
+          >
+            <div className="flex justify-between items-start text-purple-700">
+              <span className="text-[10px] font-black uppercase tracking-wider opacity-80">Active Tables</span>
+              <FaUtensils className="text-base opacity-90" />
+            </div>
+            <p className="mt-4 text-2xl font-black text-neutral-850 tracking-tight">
+              {todayStats.activeTables || 0}
+            </p>
+          </motion.article>
+        </div>
+
+        {/* Today's breakdown metrics */}
+        <div className="mt-6 grid gap-6 md:grid-cols-2">
+          {/* Top selling items today */}
+          <div className="rounded-2xl border border-neutral-100 bg-neutral-50/30 p-5">
+            <h3 className="text-xs uppercase font-black tracking-wider text-neutral-450 mb-4 flex items-center gap-1.5">
+              <FaBurger className="text-red-500" /> Today's Top Selling Items
+            </h3>
+            <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+              {todayStats.topItems?.map((item, index) => (
+                <div key={`${item.name}-${index}`} className="flex justify-between items-center bg-white border border-neutral-150 p-3 rounded-xl text-xs font-bold">
+                  <div className="flex items-center gap-2">
+                    <span className={`h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-black border ${
+                      index === 0 ? "bg-amber-100 border-amber-300 text-amber-800" :
+                      index === 1 ? "bg-slate-100 border-slate-300 text-slate-800" :
+                      index === 2 ? "bg-orange-100 border-orange-200 text-orange-850" :
+                      "bg-neutral-150 border-neutral-200 text-neutral-500"
+                    }`}>
+                      {index + 1}
+                    </span>
+                    <span className="text-neutral-800 font-extrabold">{item.name}</span>
+                  </div>
+                  <span className="text-red-650 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full text-[10px] font-black">
+                    {item.quantity} sold
+                  </span>
+                </div>
+              ))}
+              {(!todayStats.topItems || todayStats.topItems.length === 0) && (
+                <p className="text-neutral-400 text-center py-6 text-xs font-semibold">No sales logged today yet.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Today's Category sales */}
+          <div className="rounded-2xl border border-neutral-100 bg-neutral-50/30 p-5">
+            <h3 className="text-xs uppercase font-black tracking-wider text-neutral-450 mb-4 flex items-center gap-1.5">
+              <FaArrowTrendUp className="text-red-500" /> Today's Sales by Category
+            </h3>
+            <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1">
+              {todayStats.categorySales?.map((cat) => {
+                const totalCatSales = todayStats.categorySales.reduce((acc, c) => acc + c.revenue, 0) || 1;
+                const percent = Math.min((cat.revenue / totalCatSales) * 100, 100);
+                return (
+                  <div key={cat.category} className="space-y-1.5">
+                    <div className="flex justify-between text-xs font-bold text-neutral-600">
+                      <span className="text-neutral-800 font-extrabold">{cat.category}</span>
+                      <span className="text-red-600 font-black">₹{cat.revenue.toFixed(2)}</span>
+                    </div>
+                    <div className="h-2 w-full bg-neutral-205 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-red-500 to-orange-400 rounded-full transition-all duration-500"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+              {(!todayStats.categorySales || todayStats.categorySales.length === 0) && (
+                <p className="text-neutral-400 text-center py-6 text-xs font-semibold">No category sales logged today.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr className="border-neutral-200 my-8" />
+
+      {/* Historical & Monthly Analytics Header */}
+      <h2 className="text-base font-black text-neutral-700 uppercase tracking-widest mb-6">
+        Monthly & Historical Statistics
+      </h2>
 
       {/* Metric Cards Grid */}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -237,7 +431,7 @@ export default function AdminDashboard() {
             </h2>
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-50"></span>
             </span>
           </div>
 
@@ -247,11 +441,12 @@ export default function AdminDashboard() {
                 "Pending": "bg-amber-50 text-amber-700 border-amber-200",
                 "Accepted": "bg-blue-50 text-blue-700 border-blue-200",
                 "Cooking": "bg-purple-50 text-purple-700 border-purple-200",
+                "Preparing": "bg-orange-50 text-orange-700 border-orange-200",
                 "Ready": "bg-indigo-50 text-indigo-700 border-indigo-200",
                 "Served": "bg-green-50 text-green-700 border-green-200",
                 "Paid": "bg-emerald-50 text-emerald-700 border-emerald-200",
-                "Completed": "bg-neutral-50 text-neutral-700 border-neutral-200",
-                "Cancelled": "bg-rose-50 text-rose-700 border-rose-200"
+                "Completed": "bg-neutral-55 text-neutral-700 border-neutral-200",
+                "Cancelled": "bg-rose-50 text-rose-700 border-rose-205"
               };
               return (
                 <div key={order._id} className="flex justify-between items-center rounded-2xl bg-neutral-50 border border-neutral-100 p-4 text-xs font-semibold hover:bg-neutral-100/50 transition-colors">
@@ -280,9 +475,9 @@ export default function AdminDashboard() {
       </div>
 
       {/* Popular Items breakdown */}
-      <div className="rounded-3xl border border-neutral-200/60 bg-white p-6 shadow-sm">
+      <div className="mt-8 rounded-3xl border border-neutral-200/60 bg-white p-6 shadow-sm">
         <h2 className="text-base font-black text-neutral-800 tracking-tight mb-5">
-          Top Selling Menu Items
+          Top Selling Menu Items (All-Time)
         </h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-bold text-neutral-600">

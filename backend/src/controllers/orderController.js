@@ -206,4 +206,316 @@ const getCompletedOrdersCount = async (req, res, next) => {
   }
 };
 
-module.exports = { listOrders, placeOrder, updateOrderStatus, getOrderById, getActiveOrderByTable, getCompletedOrdersCount };
+const updateOrderItemStatus = async (req, res, next) => {
+  const { id, itemIndex } = req.params;
+  const { kitchenStatus, served } = req.body;
+  const userRole = req.user.role;
+
+  try {
+    const idx = parseInt(itemIndex, 10);
+    if (isNaN(idx)) {
+      return res.status(400).json({ success: false, message: "Invalid item index" });
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    if (["Served", "Completed", "Paid"].includes(order.status)) {
+      return res.status(400).json({ success: false, message: "Cannot modify completed order." });
+    }
+    if (order.status === "Cancelled") {
+      return res.status(400).json({ success: false, message: "Cannot modify cancelled order." });
+    }
+
+    if (idx < 0 || idx >= order.items.length) {
+      return res.status(400).json({ success: false, message: "Item index out of bounds" });
+    }
+
+    const item = order.items[idx];
+
+    // Enforce role permissions
+    if (kitchenStatus !== undefined) {
+      if (userRole !== "chef" && userRole !== "admin") {
+        return res.status(403).json({ success: false, message: "Only Chef and Admin can mark items prepared" });
+      }
+      item.kitchenStatus = kitchenStatus;
+      if (kitchenStatus === "ready") {
+        item.preparedAt = new Date();
+      } else {
+        item.preparedAt = null;
+      }
+    }
+
+    if (served !== undefined) {
+      if (userRole !== "waiter" && userRole !== "admin") {
+        return res.status(403).json({ success: false, message: "Only Waiter and Admin can mark items served" });
+      }
+      item.served = served;
+      if (served) {
+        item.servedAt = new Date();
+      } else {
+        item.servedAt = null;
+      }
+    }
+
+    // Auto-calculate order status
+    const previousStatus = order.status;
+    if (!["Paid", "Completed", "Cancelled"].includes(order.status)) {
+      const items = order.items || [];
+      const totalItems = items.length;
+      let preparedCount = 0;
+      let servedCount = 0;
+
+      for (const it of items) {
+        if (it.kitchenStatus === "ready") {
+          preparedCount++;
+        }
+        if (it.served) {
+          servedCount++;
+        }
+      }
+
+      let newStatus = "Pending";
+      if (servedCount === totalItems) {
+        newStatus = "Served";
+      } else if (preparedCount === totalItems) {
+        newStatus = "Ready";
+      } else if (preparedCount > 0) {
+        newStatus = "Preparing";
+      }
+
+      order.status = newStatus;
+
+      // Set timestamps
+      if (newStatus === "Preparing" && !order.cookingStartedAt) {
+        order.cookingStartedAt = new Date();
+      }
+      if (newStatus === "Ready" && !order.readyAt) {
+        order.readyAt = new Date();
+      }
+      if (newStatus === "Served" && !order.servedAt) {
+        order.servedAt = new Date();
+      }
+    }
+
+    // Save order
+    const updatedOrder = await order.save();
+
+    // Trigger preparing hook if status transitioned to Preparing
+    if (updatedOrder.status === "Preparing" && previousStatus === "Pending") {
+      await onOrderPreparing(updatedOrder);
+    }
+
+    // Emit Socket updates
+    const io = getIO();
+    if (io) {
+      io.to("chef").emit("order:updated", updatedOrder);
+      io.to("admin").emit("order:updated", updatedOrder);
+      io.to(`order:${updatedOrder._id}`).emit("order:updated", updatedOrder);
+      io.emit("order:updated", updatedOrder); // General emit for waiter page
+    }
+
+    return res.json({ success: true, order: updatedOrder });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const cancelOrder = async (req, res, next) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+  const userRole = req.user.role;
+  const username = req.user.name || req.user.username || userRole;
+
+  try {
+    if (userRole !== "admin" && userRole !== "waiter") {
+      return res.status(403).json({ success: false, message: "Only Waiter and Admin can cancel orders" });
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    if (["Served", "Completed", "Paid"].includes(order.status)) {
+      return res.status(400).json({ success: false, message: "Cannot cancel a served/completed order." });
+    }
+    if (order.status === "Cancelled") {
+      return res.status(400).json({ success: false, message: "Order is already cancelled." });
+    }
+
+    // Check if any item in the order has already been served
+    const hasServedItems = order.items && order.items.some(item => item.served);
+    if (hasServedItems) {
+      return res.status(400).json({ success: false, message: "Cannot cancel order because some items have already been served. Please cancel individual unserved items instead." });
+    }
+
+    // Cancel all items (since none are served)
+    for (const item of order.items) {
+      item.cancelled = true;
+      item.cancelReason = reason || "Full order cancelled";
+      item.cancelledBy = username;
+      item.cancelledAt = new Date();
+      item.inventoryConsumed = item.kitchenStatus === "ready";
+    }
+
+    order.status = "Cancelled";
+    order.paymentStatus = "cancelled";
+    order.cancelReason = reason || "Full order cancelled";
+    order.cancelledBy = username;
+    order.cancelledAt = new Date();
+
+    // Release table if occupied by this order
+    const Table = require("../models/Table");
+    const table = await Table.findById(order.table);
+    if (table && table.activeOrder?.toString() === order._id.toString()) {
+      table.activeOrder = null;
+      table.status = "available";
+      await table.save();
+    }
+
+    const updatedOrder = await order.save();
+
+    // Emit Socket updates
+    const io = getIO();
+    if (io) {
+      io.to("chef").emit("order:updated", updatedOrder);
+      io.to("admin").emit("order:updated", updatedOrder);
+      io.to(`order:${updatedOrder._id}`).emit("order:updated", updatedOrder);
+      io.emit("order:updated", updatedOrder);
+    }
+
+    return res.json({ success: true, order: updatedOrder });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const cancelOrderItem = async (req, res, next) => {
+  const { id, itemId } = req.params;
+  const { reason } = req.body;
+  const userRole = req.user.role;
+  const username = req.user.name || req.user.username || userRole;
+
+  try {
+    if (userRole !== "admin" && userRole !== "waiter") {
+      return res.status(403).json({ success: false, message: "Only Waiter and Admin can cancel items" });
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    if (["Served", "Completed", "Paid"].includes(order.status)) {
+      return res.status(400).json({ success: false, message: "Cannot modify completed order." });
+    }
+    if (order.status === "Cancelled") {
+      return res.status(400).json({ success: false, message: "Cannot modify cancelled order." });
+    }
+
+    // Resolve index
+    let idx = parseInt(itemId, 10);
+    if (isNaN(idx)) {
+      idx = order.items.findIndex(it => it.name.toLowerCase() === itemId.toLowerCase());
+    }
+
+    if (idx < 0 || idx >= order.items.length) {
+      return res.status(400).json({ success: false, message: "Item not found in order" });
+    }
+
+    const item = order.items[idx];
+    if (item.served) {
+      return res.status(400).json({ success: false, message: "Served items cannot be cancelled." });
+    }
+
+    if (item.cancelled) {
+      return res.status(400).json({ success: false, message: "Item is already cancelled." });
+    }
+
+    item.cancelled = true;
+    item.cancelReason = reason || "Item cancelled";
+    item.cancelledBy = username;
+    item.cancelledAt = new Date();
+    item.inventoryConsumed = item.kitchenStatus === "ready";
+
+    // Recalculate subtotal/total of the order excluding cancelled items
+    order.subtotal = order.items.reduce((sum, it) => {
+      return sum + (it.cancelled ? 0 : it.price * it.quantity);
+    }, 0);
+    order.total = order.subtotal + order.tax;
+
+    // Recalculate overall status based on non-cancelled items
+    const nonCancelledItems = order.items.filter(it => !it.cancelled);
+    const totalActive = nonCancelledItems.length;
+
+    if (totalActive === 0) {
+      // If all items are cancelled, cancel the entire order
+      order.status = "Cancelled";
+      order.paymentStatus = "cancelled";
+      order.cancelReason = reason || "All items cancelled";
+      order.cancelledBy = username;
+      order.cancelledAt = new Date();
+
+      // Release table
+      const Table = require("../models/Table");
+      const table = await Table.findById(order.table);
+      if (table && table.activeOrder?.toString() === order._id.toString()) {
+        table.activeOrder = null;
+        table.status = "available";
+        await table.save();
+      }
+    } else {
+      let preparedCount = 0;
+      let servedCount = 0;
+
+      for (const it of nonCancelledItems) {
+        if (it.kitchenStatus === "ready") {
+          preparedCount++;
+        }
+        if (it.served) {
+          servedCount++;
+        }
+      }
+
+      let newStatus = "Pending";
+      if (servedCount === totalActive) {
+        newStatus = "Served";
+      } else if (preparedCount === totalActive) {
+        newStatus = "Ready";
+      } else if (preparedCount > 0) {
+        newStatus = "Preparing";
+      }
+      order.status = newStatus;
+    }
+
+    const updatedOrder = await order.save();
+
+    // Emit Socket updates
+    const io = getIO();
+    if (io) {
+      io.to("chef").emit("order:updated", updatedOrder);
+      io.to("admin").emit("order:updated", updatedOrder);
+      io.to(`order:${updatedOrder._id}`).emit("order:updated", updatedOrder);
+      io.emit("order:updated", updatedOrder);
+    }
+
+    return res.json({ success: true, order: updatedOrder });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { 
+  listOrders, 
+  placeOrder, 
+  updateOrderStatus, 
+  getOrderById, 
+  getActiveOrderByTable, 
+  getCompletedOrdersCount,
+  updateOrderItemStatus,
+  cancelOrder,
+  cancelOrderItem
+};

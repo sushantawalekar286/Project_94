@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { FaUtensils, FaSyncAlt, FaSignOutAlt, FaConciergeBell, FaCheck, FaBan, FaCheckCircle, FaPlus, FaPrint, FaSearch } from "react-icons/fa";
 import { getTables, updateTableStatus } from "../../services/tableService";
-import { updateOrderStatus, placeOrder } from "../../services/orderService";
+import { updateOrderStatus, placeOrder, updateOrderItemStatus, cancelOrder, cancelOrderItem } from "../../services/orderService";
 import { getMenu, getCategories } from "../../services/menuService";
 import { useSocket } from "../../hooks/useSocket";
 import { useAuth } from "../../hooks/useAuth";
@@ -95,6 +95,36 @@ export default function WaiterDashboard() {
       await refresh();
     } catch (error) {
       toast.error("Failed to update order status");
+    }
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    const reason = prompt(
+      "Enter cancellation reason (e.g. Customer Request, Wrong Order, Duplicate Order, Table Left, Admin Decision, Other):",
+      "Customer Request"
+    );
+    if (reason === null) return;
+    try {
+      await cancelOrder(orderId, reason);
+      toast.success("Order cancelled successfully");
+      await refresh();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to cancel order");
+    }
+  };
+
+  const handleCancelOrderItem = async (orderId, itemId, itemName) => {
+    const reason = prompt(
+      `Enter cancellation reason for "${itemName}" (e.g. Customer Request, Wrong Order, Duplicate Order):`,
+      "Customer Request"
+    );
+    if (reason === null) return;
+    try {
+      await cancelOrderItem(orderId, itemId, reason);
+      toast.success(`Item "${itemName}" cancelled successfully`);
+      await refresh();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to cancel item");
     }
   };
 
@@ -309,19 +339,99 @@ Grand Total    ${grandTotalStr.padStart(12)}
 
                     {/* Ordered Items List */}
                     <div className="space-y-3">
-                      <p className="text-xs uppercase font-black tracking-wider text-neutral-450">Ordered Items</p>
-                      <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                        {selectedTable.activeOrder.items?.map((item) => (
-                          <div key={item._id || item.menuItem} className="flex justify-between items-center text-sm bg-neutral-50 p-3.5 rounded-xl border border-neutral-100">
-                            <div>
-                              <p className="font-bold text-neutral-800">{item.name}</p>
-                              <p className="text-xs text-neutral-400 mt-0.5">
-                                Qty: {item.quantity} {item.portionType !== "single" && `· ${item.portionType}`}
-                              </p>
+                      <p className="text-xs uppercase font-black tracking-wider text-neutral-450">Ordered Items Checklist</p>
+                      <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
+                        {selectedTable.activeOrder.items?.map((item, idx) => {
+                          const isPrepared = item.kitchenStatus === "ready";
+                          const isServed = item.served;
+                          const isClosedOrder = ["Served", "Completed", "Paid", "Cancelled"].includes(selectedTable.activeOrder.status);
+                          const isCancelledOrder = selectedTable.activeOrder.status === "Cancelled";
+                          const showServeCheckbox = isPrepared && !isServed && !isClosedOrder;
+
+                          return (
+                            <div key={item._id || item.menuItem || idx} className="flex flex-col bg-neutral-50 p-3.5 rounded-xl border border-neutral-100 space-y-2">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-bold text-neutral-805">{item.name}</p>
+                                  <p className="text-xs text-neutral-450 mt-0.5">
+                                    Qty: {item.quantity} {item.portionType !== "single" && `· ${item.portionType}`} · ₹{(item.price * item.quantity).toFixed(2)}
+                                  </p>
+                                </div>
+                                <span className={`px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-wider ${
+                                  isCancelledOrder || item.cancelled
+                                    ? "bg-red-50 text-red-705 border border-red-250"
+                                    : isServed 
+                                    ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                    : isPrepared
+                                    ? "bg-green-50 text-green-700 border border-green-200"
+                                    : "bg-amber-50 text-amber-700 border border-amber-200"
+                                }`}>
+                                  {isCancelledOrder || item.cancelled
+                                    ? "🔴 Cancelled" 
+                                    : isServed 
+                                    ? "🔵 Served" 
+                                    : isPrepared 
+                                    ? "🟢 Ready" 
+                                    : "🟡 Pending"}
+                                </span>
+                              </div>
+                              
+                              <div className="flex justify-between items-center pt-2 border-t border-neutral-200/50 text-xs font-semibold">
+                                <span className="flex items-center gap-1.5 text-neutral-500 text-[11px]">
+                                  {isPrepared ? (
+                                    <span className="text-green-600 font-bold">☑ Prepared</span>
+                                  ) : (
+                                    <span className="text-neutral-400 font-bold">☐ Pending KDS</span>
+                                  )}
+                                </span>
+                                
+                                <div className="flex items-center gap-3">
+                                  {!isServed && !item.cancelled && !isClosedOrder && (
+                                    <button
+                                      onClick={() => handleCancelOrderItem(selectedTable.activeOrder._id, idx, item.name)}
+                                      className="text-red-650 hover:text-red-800 flex items-center gap-1 text-[11px] border border-red-100 bg-red-50/50 px-2 py-1 rounded-lg transition-all"
+                                    >
+                                      <FaBan className="text-[10px]" /> Cancel Item
+                                    </button>
+                                  )}
+                                  
+                                  {showServeCheckbox && (
+                                    <label className="flex items-center gap-1.5 cursor-pointer text-[11px]">
+                                      <input
+                                        type="checkbox"
+                                        checked={isServed}
+                                        onChange={() => {
+                                          updateOrderItemStatus(selectedTable.activeOrder._id, idx, { served: !isServed })
+                                            .then(() => {
+                                              toast.success(`Item "${item.name}" marked served`);
+                                              refresh();
+                                            })
+                                            .catch((err) => {
+                                              toast.error(err.response?.data?.message || "Failed to update served status");
+                                            });
+                                        }}
+                                        className="h-4 w-4 rounded border-neutral-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                                      />
+                                      <span className="font-bold text-neutral-600">Served</span>
+                                    </label>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Timestamps */}
+                              {(item.preparedAt || item.servedAt) && (
+                                <div className="pt-1.5 flex flex-wrap gap-2.5 text-[8.5px] text-neutral-400 font-semibold border-t border-neutral-200/30">
+                                  {item.preparedAt && (
+                                    <span>Prepared: {new Date(item.preparedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                                  )}
+                                  {item.servedAt && (
+                                    <span>Served: {new Date(item.servedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                            <span className="font-black text-red-600">₹{(item.price * item.quantity).toFixed(2)}</span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -355,9 +465,9 @@ Grand Total    ${grandTotalStr.padStart(12)}
                             <FaCheckCircle /> Mark Paid (Free Table)
                           </button>
                         )}
-                        {["Pending", "Accepted", "Cooking"].includes(selectedTable.activeOrder.status) && (
+                        {["Pending", "Accepted", "Cooking", "Preparing", "Ready"].includes(selectedTable.activeOrder.status) && (
                           <button
-                            onClick={() => handleOrderStatusChange(selectedTable.activeOrder._id, "Cancelled")}
+                            onClick={() => handleCancelOrder(selectedTable.activeOrder._id)}
                             className="col-span-2 flex items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 py-3.5 text-xs font-black uppercase tracking-wider text-red-600 hover:bg-red-100 transition-all"
                           >
                             <FaBan /> Cancel Order

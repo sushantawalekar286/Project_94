@@ -2,8 +2,15 @@ import { motion } from "framer-motion";
 import { FaClock, FaUtensils, FaCheckCircle, FaBan, FaInfoCircle, FaClipboard } from "react-icons/fa";
 import StatusBadge from "./StatusBadge";
 import toast from "react-hot-toast";
+import { useAuth } from "../../hooks/useAuth";
+import { updateOrderItemStatus } from "../../services/orderService";
 
-export default function OrderCard({ order, onStatusChange }) {
+export default function OrderCard({ order, onStatusChange, onRefresh, readOnly = false }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const isChef = user?.role === "chef";
+  const canPrepare = isAdmin || isChef;
+
   const copyOrderId = () => {
     navigator.clipboard.writeText(order._id);
     toast.success("Order ID copied to clipboard!");
@@ -26,13 +33,15 @@ export default function OrderCard({ order, onStatusChange }) {
             >
               Start Preparing
             </button>
-            <button
-              onClick={() => onStatusChange(order._id, "Cancelled")}
-              className="rounded-2xl border border-red-500/20 bg-red-50 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-100 transition"
-              title="Cancel Order"
-            >
-              <FaBan />
-            </button>
+            {!isChef && (
+              <button
+                onClick={() => onStatusChange(order._id, "Cancelled")}
+                className="rounded-2xl border border-red-500/20 bg-red-50 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-100 transition"
+                title="Cancel Order"
+              >
+                <FaBan />
+              </button>
+            )}
           </>
         );
       case "Accepted":
@@ -44,16 +53,19 @@ export default function OrderCard({ order, onStatusChange }) {
             >
               Start Preparing
             </button>
-            <button
-              onClick={() => onStatusChange(order._id, "Cancelled")}
-              className="rounded-2xl border border-red-500/20 bg-red-50 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-100 transition"
-              title="Cancel Order"
-            >
-              <FaBan />
-            </button>
+            {!isChef && (
+              <button
+                onClick={() => onStatusChange(order._id, "Cancelled")}
+                className="rounded-2xl border border-red-500/20 bg-red-50 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-100 transition"
+                title="Cancel Order"
+              >
+                <FaBan />
+              </button>
+            )}
           </>
         );
       case "Cooking":
+      case "Preparing":
         return (
           <button
             onClick={() => onStatusChange(order._id, "Ready")}
@@ -130,22 +142,97 @@ export default function OrderCard({ order, onStatusChange }) {
 
         {/* Items List */}
         <div className="mt-4 space-y-2">
-          {order.items?.map((item, idx) => (
-            <div key={`${order._id}-${item.name}-${item.portionType || idx}`} className="flex items-center justify-between rounded-xl bg-neutral-50 border border-neutral-100 p-3 text-xs">
-              <div className="flex items-center gap-2.5">
-                <FaUtensils className="text-red-500" size={11} />
-                <div className="flex flex-col">
-                  <span className="font-bold text-neutral-800">
-                    {item.name} {item.portionType && item.portionType !== 'single' ? `(${item.portionType})` : ''}
-                  </span>
-                  <span className="text-[10px] text-neutral-400 font-bold">
-                    ₹{item.price?.toFixed(2)} each
+          {order.items?.map((item, idx) => {
+            const isPrepared = item.kitchenStatus === "ready";
+            const isServed = item.served;
+
+            const isClosedOrder = ["Served", "Completed", "Paid", "Cancelled"].includes(order.status);
+            const isCancelledOrder = order.status === "Cancelled";
+            const showPrepareCheckbox = !isClosedOrder && !isPrepared && !readOnly;
+
+            const handleTogglePrepared = async () => {
+              if (!canPrepare) {
+                toast.error("Only Chef and Admin can mark items prepared");
+                return;
+              }
+              const newStatus = isPrepared ? "pending" : "ready";
+              try {
+                await updateOrderItemStatus(order._id, idx, { kitchenStatus: newStatus });
+                toast.success(`Item "${item.name}" marked ${newStatus}`);
+                if (onRefresh) {
+                  onRefresh();
+                } else if (onStatusChange) {
+                  onStatusChange();
+                }
+              } catch (err) {
+                console.error(err);
+                toast.error(err.response?.data?.message || "Failed to update item status");
+              }
+            };
+
+            return (
+              <div 
+                key={`${order._id}-${item.name}-${item.portionType || idx}`} 
+                className="flex flex-col rounded-xl bg-neutral-50 border border-neutral-100 p-3 text-xs"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    {showPrepareCheckbox && canPrepare && (
+                      <input
+                        type="checkbox"
+                        checked={isPrepared}
+                        onChange={handleTogglePrepared}
+                        className="h-4.5 w-4.5 rounded border-neutral-300 text-red-605 focus:ring-red-500 cursor-pointer"
+                      />
+                    )}
+                    <div className="flex flex-col">
+                      <span className={`font-bold text-neutral-805 ${isPrepared ? "line-through text-neutral-400" : ""}`}>
+                        {item.name} {item.portionType && item.portionType !== 'single' ? `(${item.portionType})` : ''}
+                      </span>
+                      <span className="text-[10px] text-neutral-400 font-bold">
+                        Qty: x{item.quantity} · ₹{item.price?.toFixed(2)} each
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Status Badge */}
+                  <span className={`px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-wider ${
+                    isCancelledOrder
+                      ? "bg-red-50 text-red-700 border border-red-200"
+                      : isServed 
+                      ? "bg-blue-50 text-blue-700 border border-blue-200"
+                      : isPrepared
+                      ? "bg-green-50 text-green-700 border border-green-200"
+                      : "bg-amber-50 text-amber-700 border border-amber-200"
+                  }`}>
+                    {isCancelledOrder
+                      ? "🔴 Cancelled"
+                      : isServed 
+                      ? "🔵 Served"
+                      : isPrepared
+                      ? "🟢 Ready"
+                      : "🟡 Pending"}
                   </span>
                 </div>
+
+                {/* Timestamps */}
+                {(item.preparedAt || item.servedAt) && (
+                  <div className="mt-2 pt-2 border-t border-neutral-200/40 flex flex-wrap gap-3 text-[9px] text-neutral-400 font-semibold">
+                    {item.preparedAt && (
+                      <span>
+                        Prepared: {new Date(item.preparedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
+                    {item.servedAt && (
+                      <span>
+                        Served: {new Date(item.servedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
-              <span className="rounded-full bg-neutral-200/50 px-2.5 py-1 text-[10px] font-black text-neutral-700">x{item.quantity}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Financial Details */}
@@ -184,9 +271,11 @@ export default function OrderCard({ order, onStatusChange }) {
       </div>
 
       {/* Action Buttons */}
-      <div className="mt-5 flex gap-2.5">
-        {getActionButtons()}
-      </div>
+      {!readOnly && (
+        <div className="mt-5 flex gap-2.5">
+          {getActionButtons()}
+        </div>
+      )}
     </motion.article>
   );
 }

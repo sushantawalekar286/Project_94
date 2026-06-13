@@ -15,6 +15,10 @@ const start = async () => {
     // Connect to MongoDB
     await connectDB(env.MONGODB_URI);
     
+    // Run order migrations
+    const migrateExistingOrders = require("./utils/migrateOrders");
+    await migrateExistingOrders();
+    
     // Create server instance
     const server = http.createServer(app);
     

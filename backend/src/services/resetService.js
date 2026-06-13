@@ -34,14 +34,13 @@ async function runDailyReset() {
   log("=== Starting Daily Reset Job ===");
 
   try {
-    // 1. Archive completed/paid orders using existing reporting logic
-    log("Archiving completed/paid orders...");
-    const ordersCursor = Order.find({
-      status: { $in: ["Completed", "Paid"] }
-    }).cursor();
-
-    let archivedCount = 0;
-    for (let order = await ordersCursor.next(); order != null; order = await ordersCursor.next()) {
+    // 1. First record sales for completed/paid orders that aren't recorded yet
+    log("Recording pending sales for completed/paid/served orders...");
+    const ordersToRecord = await Order.find({
+      status: { $in: ["Completed", "Paid", "Served"] }
+    });
+    let salesCount = 0;
+    for (const order of ordersToRecord) {
       const existing = await Sale.findOne({ order: order._id });
       if (!existing) {
         await Sale.create({
@@ -49,36 +48,50 @@ async function runDailyReset() {
           amount: order.subtotal,
           createdAt: order.createdAt
         });
-        archivedCount++;
+        salesCount++;
       }
     }
-    log(`Archived ${archivedCount} completed/paid orders to Sales history.`);
+    log(`Recorded ${salesCount} sales.`);
 
-    // 2. Clear active operational orders (Pending, Accepted, Cooking, Ready, Served)
-    log("Clearing active operational orders...");
-    const activeOrdersResult = await Order.deleteMany({
-      status: { $in: ["Pending", "Accepted", "Cooking", "Ready", "Served"] }
-    });
-    log(`Cleared ${activeOrdersResult.deletedCount} active operational orders.`);
+    // 2. Run order cleanup job
+    log("Running order cleanup job...");
+    const { archiveOrdersJob } = require("../jobs/archiveJob");
+    const cleanupResult = await archiveOrdersJob();
+    if (cleanupResult) {
+      log(`Deleted ${cleanupResult.completedDeletedCount} completed orders`);
+      log(`Deleted ${cleanupResult.cancelledDeletedCount} cancelled orders`);
+      log("\nCleanup completed successfully");
+    }
 
-    // 3. Clear active table sessions, customer sessions, cart data
-    log("Resetting table sessions and QR tokens...");
+    // 3. Reset table sessions only if they do not have a remaining active order
+    log("Resetting vacant or cleared table sessions...");
     const tables = await Table.find({});
     let tablesResetCount = 0;
     for (const table of tables) {
-      table.status = "available";
-      table.activeOrder = null;
-      table.sessionToken = null;
-      table.sessionStartedAt = null;
-      table.sessionExpiredAt = null;
-      table.scannerId = "";
-      table.qrId = "";
-      table.occupancy = 0;
-      table.token = crypto.randomBytes(16).toString("hex");
-      await table.save();
-      tablesResetCount++;
+      let shouldReset = true;
+      if (table.activeOrder) {
+        // Check if the active order still exists in the Order collection
+        const activeOrderExists = await Order.exists({ _id: table.activeOrder });
+        if (activeOrderExists) {
+          shouldReset = false; // Keep table session because it has a remaining active order
+        }
+      }
+
+      if (shouldReset) {
+        table.status = "available";
+        table.activeOrder = null;
+        table.sessionToken = null;
+        table.sessionStartedAt = null;
+        table.sessionExpiredAt = null;
+        table.scannerId = "";
+        table.qrId = "";
+        table.occupancy = 0;
+        table.token = crypto.randomBytes(16).toString("hex");
+        await table.save();
+        tablesResetCount++;
+      }
     }
-    log(`Reset ${tablesResetCount} tables and regenerated session tokens.`);
+    log(`Reset ${tablesResetCount} vacant or cleared tables.`);
     log("=== Daily Reset Job Completed Successfully ===");
   } catch (error) {
     log(`ERROR: Reset job failed with message: ${error.message}`);

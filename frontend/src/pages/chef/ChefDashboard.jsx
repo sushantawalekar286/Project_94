@@ -353,7 +353,7 @@ export default function ChefDashboard() {
                 {/* Grid Layout of Orders */}
                 <div className="grid gap-5 xl:grid-cols-2">
                   {filteredActiveOrders.map((order) => (
-                    <OrderCard key={order._id} order={order} onStatusChange={changeStatus} />
+                    <OrderCard key={order._id} order={order} onStatusChange={changeStatus} onRefresh={refreshData} />
                   ))}
                   {filteredActiveOrders.length === 0 && (
                     <div className="col-span-full rounded-3xl border border-neutral-200 bg-white p-12 text-center text-neutral-500 shadow-sm font-bold">
@@ -417,7 +417,7 @@ export default function ChefDashboard() {
                 {/* List layout of filtered orders */}
                 <div className="grid gap-5 xl:grid-cols-2">
                   {filteredHistoryOrders.map((order) => (
-                    <OrderCard key={order._id} order={order} onStatusChange={changeStatus} />
+                    <OrderCard key={order._id} order={order} onStatusChange={changeStatus} onRefresh={refreshData} readOnly={true} />
                   ))}
                   {filteredHistoryOrders.length === 0 && (
                     <div className="col-span-full rounded-3xl border border-neutral-200 bg-white p-12 text-center text-neutral-500 shadow-sm font-bold">

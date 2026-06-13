@@ -15,6 +15,7 @@ const orderRoutes = require("./routes/orderRoutes");
 // inventoryRoutes removed per new requirements
 const expenseRoutes = require("./routes/expenseRoutes");
 const salesRoutes = require("./routes/salesRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 const qrRoutes = require("./routes/qrRoutes");
 const tableRoutes = require("./routes/tableRoutes");
 const errorMiddleware = require("./middleware/errorMiddleware");
@@ -92,6 +93,7 @@ app.use("/api/orders", orderRoutes);
 // inventory API removed
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/sales", salesRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/qr", qrRoutes);
 app.use("/api/tables", tableRoutes);
 

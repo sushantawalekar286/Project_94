@@ -35,6 +35,7 @@ const orderSchema = new mongoose.Schema(
         "Pending",
         "Accepted",
         "Cooking",
+        "Preparing",
         "Ready",
         "Served",
         "Paid",
@@ -104,6 +105,18 @@ const orderSchema = new mongoose.Schema(
     review: {
       type: String,
       default: ""
+    },
+    cancelReason: {
+      type: String,
+      default: ""
+    },
+    cancelledBy: {
+      type: String,
+      default: ""
+    },
+    cancelledAt: {
+      type: Date,
+      default: null
     }
   },
   { timestamps: true }
